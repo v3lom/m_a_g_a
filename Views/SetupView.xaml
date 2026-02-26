@@ -53,7 +53,7 @@
             </TextBox>
 
             <!-- Start button -->
-            <Button Content="Войти в сеть" Style="{StaticResource PrimaryButton}"
+            <Button Content="Войти в сеть" Foreground="Black" Style="{StaticResource PrimaryButton}"
                     Command="{Binding StartAppCommand}"
                     HorizontalAlignment="Stretch" FontSize="15" Padding="0,14"/>
         </StackPanel>
