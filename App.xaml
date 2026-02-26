@@ -90,9 +90,11 @@
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Setter TargetName="bd" Property="Background" Value="#E0E0E0"/>
+                                <Setter Property="Foreground" Value="Black"/>
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
                                 <Setter TargetName="bd" Property="Background" Value="#CCCCCC"/>
+                                <Setter Property="Foreground" Value="Black"/>
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
                                 <Setter TargetName="bd" Property="Background" Value="#333333"/>
