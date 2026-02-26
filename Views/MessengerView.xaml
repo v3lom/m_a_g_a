@@ -9,7 +9,7 @@
             <ColumnDefinition Width="Auto"/>
         </Grid.ColumnDefinitions>
 
-        <!-- в•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђ LEFT: Contacts Panel в•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђ -->
+        <!-- ═══════════════ LEFT: Contacts Panel ═══════════════ -->
         <Grid Grid.Column="0" Background="{StaticResource SurfaceBrush}">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
@@ -59,15 +59,15 @@
                     <!-- Edit avatar -->
                     <Button Grid.Column="2" Style="{StaticResource IconButton}"
                             Command="{Binding PickAvatarCommand}" Padding="6"
-                            ToolTip="РЎРјРµРЅРёС‚СЊ Р°РІР°С‚Р°СЂРєСѓ">
-                        <TextBlock Text="вњЋ" FontSize="14" Foreground="{StaticResource TextSecBrush}"/>
+                            ToolTip="Сменить аватарку">
+                        <TextBlock Text="✎" FontSize="14" Foreground="{StaticResource TextSecBrush}"/>
                     </Button>
 
                     <!-- Settings -->
                     <Button Grid.Column="3" Style="{StaticResource IconButton}"
                             Command="{Binding ToggleSettingsCommand}" Padding="6"
-                            ToolTip="РќР°СЃС‚СЂРѕР№РєРё">
-                        <TextBlock Text="вљ™" FontSize="14" Foreground="{StaticResource TextSecBrush}"/>
+                            ToolTip="Настройки">
+                        <TextBlock Text="⚙" FontSize="14" Foreground="{StaticResource TextSecBrush}"/>
                     </Button>
                 </Grid>
             </Border>
@@ -78,7 +78,7 @@
                     <TextBox Style="{StaticResource ModernTextBox}"
                              Text="{Binding SearchQuery, UpdateSourceTrigger=PropertyChanged}"
                              Padding="36,10,14,10" FontSize="13"/>
-                    <TextBlock Text="рџ”Ќ" FontSize="13" VerticalAlignment="Center"
+                    <TextBlock Text="🔍" FontSize="13" VerticalAlignment="Center"
                                Margin="12,0,0,0" IsHitTestVisible="False"/>
                 </Grid>
             </Border>
@@ -87,7 +87,7 @@
             <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto"
                           HorizontalScrollBarVisibility="Disabled">
                 <StackPanel>
-                    <TextBlock Text="РџРћР›Р¬Р—РћР’РђРўР•Р›Р Р’ РЎР•РўР"
+                    <TextBlock Text="ПОЛЬЗОВАТЕЛИ В СЕТИ"
                                FontSize="10" Foreground="{StaticResource TextSecBrush}"
                                FontWeight="SemiBold" Margin="16,8,16,4"/>
 
@@ -126,7 +126,7 @@
                                             <TextBlock FontSize="11" Foreground="{StaticResource TextSecBrush}"
                                                        TextTrimming="CharacterEllipsis">
                                                 <TextBlock.Text>
-                                                    <MultiBinding StringFormat="{}{0} В· {1}">
+                                                    <MultiBinding StringFormat="{}{0} · {1}">
                                                         <Binding Path="StatusText"/>
                                                         <Binding Path="IpAddress"/>
                                                     </MultiBinding>
@@ -142,8 +142,8 @@
                     <StackPanel Visibility="{Binding FilteredContacts.Count,
                                 Converter={StaticResource BoolToVis}, ConverterParameter=invert}"
                                 HorizontalAlignment="Center" Margin="20,40">
-                        <TextBlock Text="рџ“Ў" FontSize="32" HorizontalAlignment="Center" Margin="0,0,0,8"/>
-                        <TextBlock Text="РџРѕРёСЃРє РїРѕР»СЊР·РѕРІР°С‚РµР»РµР№..." FontSize="13"
+                        <TextBlock Text="📡" FontSize="32" HorizontalAlignment="Center" Margin="0,0,0,8"/>
+                        <TextBlock Text="Поиск пользователей..." FontSize="13"
                                    Foreground="{StaticResource TextSecBrush}"
                                    HorizontalAlignment="Center"/>
                     </StackPanel>
@@ -157,19 +157,19 @@
                     BorderBrush="{StaticResource BorderBrush2}" BorderThickness="0,1,0,0"
                     Padding="16,14">
                 <StackPanel>
-                    <TextBlock Text="РќРђРЎРўР РћР™РљР" FontSize="10" FontWeight="SemiBold"
+                    <TextBlock Text="НАСТРОЙКИ" FontSize="10" FontWeight="SemiBold"
                                Foreground="{StaticResource TextSecBrush}" Margin="0,0,0,10"/>
 
                     <!-- Auto-start -->
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
                         <CheckBox IsChecked="{Binding AutoStart}" VerticalAlignment="Center"
                                   Foreground="White" Cursor="Hand"/>
-                        <TextBlock Text=" РђРІС‚РѕР·Р°РїСѓСЃРє РїСЂРё РІС…РѕРґРµ РІ СЃРёСЃС‚РµРјСѓ"
+                        <TextBlock Text=" Автозапуск при входе в систему"
                                    FontSize="12" VerticalAlignment="Center"/>
                     </StackPanel>
 
                     <!-- Identity info -->
-                    <TextBlock Text="РњРћР™ РљРћРњРџР¬Р®РўР•Р " FontSize="10" FontWeight="SemiBold"
+                    <TextBlock Text="МОЙ КОМПЬЮТЕР" FontSize="10" FontWeight="SemiBold"
                                Foreground="{StaticResource TextSecBrush}" Margin="0,6,0,6"/>
                     <TextBlock FontSize="11" TextWrapping="Wrap" Foreground="{StaticResource TextSecBrush}">
                         <Run Text="MAC: "/>
@@ -190,11 +190,11 @@
 
                     <!-- Export/Import -->
                     <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
-                        <Button Content="Р­РєСЃРїРѕСЂС‚ РёСЃС‚РѕСЂРёРё" Style="{StaticResource IconButton}"
+                        <Button Content="Экспорт истории" Style="{StaticResource IconButton}"
                                 Command="{Binding ExportHistoryCommand}"
                                 Background="{StaticResource Surface3Brush}"
                                 Padding="10,6" FontSize="11" Margin="0,0,6,0"/>
-                        <Button Content="РРјРїРѕСЂС‚" Style="{StaticResource IconButton}"
+                        <Button Content="Импорт" Style="{StaticResource IconButton}"
                                 Command="{Binding ImportHistoryCommand}"
                                 Background="{StaticResource Surface3Brush}"
                                 Padding="10,6" FontSize="11"/>
@@ -203,16 +203,16 @@
             </Border>
         </Grid>
 
-        <!-- в•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђ CENTER: Chat Panel в•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђ -->
+        <!-- ═══════════════ CENTER: Chat Panel ═══════════════ -->
         <Grid Grid.Column="1">
 
             <!-- Empty state -->
             <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center"
                         Visibility="{Binding HasSelectedContact, Converter={StaticResource BoolToVis}, ConverterParameter=invert}">
-                <TextBlock Text="рџ’¬" FontSize="56" HorizontalAlignment="Center" Margin="0,0,0,16"/>
-                <TextBlock Text="Р’С‹Р±РµСЂРёС‚Рµ СЃРѕР±РµСЃРµРґРЅРёРєР°" FontSize="18" FontWeight="SemiBold"
+                <TextBlock Text="💬" FontSize="56" HorizontalAlignment="Center" Margin="0,0,0,16"/>
+                <TextBlock Text="Выберите собеседника" FontSize="18" FontWeight="SemiBold"
                            HorizontalAlignment="Center" Margin="0,0,0,8"/>
-                <TextBlock Text="РџРѕР»СЊР·РѕРІР°С‚РµР»Рё РІ Р»РѕРєР°Р»СЊРЅРѕР№ СЃРµС‚Рё РїРѕСЏРІСЏС‚СЃСЏ РІ СЃРїРёСЃРєРµ СЃР»РµРІР°"
+                <TextBlock Text="Пользователи в локальной сети появятся в списке слева"
                            FontSize="13" Foreground="{StaticResource TextSecBrush}"
                            HorizontalAlignment="Center" TextAlignment="Center" LineHeight="22"/>
             </StackPanel>
@@ -269,7 +269,7 @@
                             <DataTemplate>
                                 <Grid Margin="0,4">
 
-                                    <!-- в”Ђв”Ђ TEXT (markdown) в”Ђв”Ђ -->
+                                    <!-- ── TEXT (markdown) ── -->
                                     <Border Visibility="{Binding IsText, Converter={StaticResource BoolToVis}}"
                                             HorizontalAlignment="{Binding IsSentByMe, Converter={StaticResource MsgAlign}, ConverterParameter=HorizontalAlignment}"
                                             Background="{Binding IsSentByMe, Converter={StaticResource BubbleColor}}"
@@ -284,7 +284,7 @@
                                         </StackPanel>
                                     </Border>
 
-                                    <!-- в”Ђв”Ђ VOICE в”Ђв”Ђ -->
+                                    <!-- ── VOICE ── -->
                                     <Border Visibility="{Binding IsVoice, Converter={StaticResource BoolToVis}}"
                                             HorizontalAlignment="{Binding IsSentByMe, Converter={StaticResource MsgAlign}, ConverterParameter=HorizontalAlignment}"
                                             Background="{Binding IsSentByMe, Converter={StaticResource BubbleColor}}"
@@ -300,7 +300,7 @@
                                                            Foreground="{Binding IsSentByMe, Converter={StaticResource BubbleTextColor}}"/>
                                             </Button>
                                             <StackPanel Margin="10,0,0,0" VerticalAlignment="Center">
-                                                <TextBlock Text="Р“РѕР»РѕСЃРѕРІРѕРµ СЃРѕРѕР±С‰РµРЅРёРµ"
+                                                <TextBlock Text="Голосовое сообщение"
                                                            Foreground="{Binding IsSentByMe, Converter={StaticResource BubbleTextColor}}"
                                                            FontSize="13" FontWeight="Medium"/>
                                                 <TextBlock Text="{Binding TimeFormatted}" FontSize="10"
@@ -310,7 +310,7 @@
                                         </StackPanel>
                                     </Border>
 
-                                    <!-- в”Ђв”Ђ IMAGE в”Ђв”Ђ -->
+                                    <!-- ── IMAGE ── -->
                                     <Border Visibility="{Binding IsImage, Converter={StaticResource BoolToVis}}"
                                             HorizontalAlignment="{Binding IsSentByMe, Converter={StaticResource MsgAlign}, ConverterParameter=HorizontalAlignment}"
                                             Background="{Binding IsSentByMe, Converter={StaticResource BubbleColor}}"
@@ -326,14 +326,14 @@
                                         </StackPanel>
                                     </Border>
 
-                                    <!-- в”Ђв”Ђ FILE в”Ђв”Ђ -->
+                                    <!-- ── FILE ── -->
                                     <Border Visibility="{Binding IsFile, Converter={StaticResource BoolToVis}}"
                                             HorizontalAlignment="{Binding IsSentByMe, Converter={StaticResource MsgAlign}, ConverterParameter=HorizontalAlignment}"
                                             Background="{Binding IsSentByMe, Converter={StaticResource BubbleColor}}"
                                             CornerRadius="14" Padding="14,10" MinWidth="200" MaxWidth="340">
                                         <StackPanel>
                                             <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
-                                                <TextBlock Text="рџ“Ѓ" FontSize="22" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                                                <TextBlock Text="📁" FontSize="22" Margin="0,0,10,0" VerticalAlignment="Center"/>
                                                 <StackPanel VerticalAlignment="Center">
                                                     <TextBlock Text="{Binding FileName}" FontSize="13" FontWeight="Medium"
                                                                Foreground="{Binding IsSentByMe, Converter={StaticResource BubbleTextColor}}"
@@ -351,7 +351,7 @@
                                                     CommandParameter="{Binding}"
                                                     Background="{StaticResource Surface3Brush}"
                                                     Padding="8,4" FontSize="12" HorizontalAlignment="Left">
-                                                <TextBlock Text="рџ’ѕ  РЎРѕС…СЂР°РЅРёС‚СЊ"/>
+                                                <TextBlock Text="💾  Сохранить"/>
                                             </Button>
                                         </StackPanel>
                                     </Border>
@@ -380,24 +380,24 @@
                         <Button Grid.Column="0" Style="{StaticResource IconButton}"
                                 Command="{Binding SendImageCommand}"
                                 Width="38" Height="38" Padding="0"
-                                ToolTip="РћС‚РїСЂР°РІРёС‚СЊ РёР·РѕР±СЂР°Р¶РµРЅРёРµ" Margin="0,0,4,0">
-                            <TextBlock Text="рџ–ј" FontSize="17"/>
+                                ToolTip="Отправить изображение" Margin="0,0,4,0">
+                            <TextBlock Text="🖼" FontSize="17"/>
                         </Button>
 
                         <!-- Attach file -->
                         <Button Grid.Column="1" Style="{StaticResource IconButton}"
                                 Command="{Binding SendFileCommand}"
                                 Width="38" Height="38" Padding="0"
-                                ToolTip="РћС‚РїСЂР°РІРёС‚СЊ С„Р°Р№Р»" Margin="0,0,4,0">
-                            <TextBlock Text="рџ“Ћ" FontSize="17"/>
+                                ToolTip="Отправить файл" Margin="0,0,4,0">
+                            <TextBlock Text="📎" FontSize="17"/>
                         </Button>
 
                         <!-- Voice file -->
                         <Button Grid.Column="2" Style="{StaticResource IconButton}"
                                 Command="{Binding SendVoiceFileCommand}"
                                 Width="38" Height="38" Padding="0"
-                                ToolTip="РћС‚РїСЂР°РІРёС‚СЊ Р°СѓРґРёРѕС„Р°Р№Р»" Margin="0,0,8,0">
-                            <TextBlock Text="рџЋµ" FontSize="17"/>
+                                ToolTip="Отправить аудиофайл" Margin="0,0,8,0">
+                            <TextBlock Text="🎵" FontSize="17"/>
                         </Button>
 
                         <!-- Text input (supports markdown, Shift+Enter = newline) -->
@@ -406,36 +406,36 @@
                                  Padding="14,10" FontSize="14"
                                  KeyDown="MessageInput_KeyDown"
                                  AcceptsReturn="False"
-                                 ToolTip="Markdown: **Р¶РёСЂРЅС‹Р№** *РєСѓСЂСЃРёРІ* `РєРѕРґ` [СЃСЃС‹Р»РєР°](url) ~~Р·Р°С‡С‘СЂРєРЅСѓС‚С‹Р№~~"/>
+                                 ToolTip="Markdown: **жирный** *курсив* `код` [ссылка](url) ~~зачёркнутый~~"/>
 
                         <!-- Voice record / stop -->
                         <Button Grid.Column="4" Style="{StaticResource IconButton}"
                                 Command="{Binding StartVoiceCommand}"
                                 Margin="8,0,0,0" Width="42" Height="42" Padding="0"
                                 Visibility="{Binding IsRecording, Converter={StaticResource BoolToVis}, ConverterParameter=invert}"
-                                ToolTip="Р—Р°РїРёСЃР°С‚СЊ РіРѕР»РѕСЃРѕРІРѕРµ">
-                            <TextBlock Text="рџЋ™" FontSize="20"/>
+                                ToolTip="Записать голосовое">
+                            <TextBlock Text="🎙" FontSize="20"/>
                         </Button>
                         <Button Grid.Column="4" Style="{StaticResource IconButton}"
                                 Command="{Binding StopVoiceCommand}"
                                 Margin="8,0,0,0" Width="42" Height="42" Padding="0"
                                 Visibility="{Binding IsRecording, Converter={StaticResource BoolToVis}}"
                                 Background="#CC0000">
-                            <TextBlock Text="вЏ№" FontSize="20"/>
+                            <TextBlock Text="⏹" FontSize="20"/>
                         </Button>
 
                         <!-- Send -->
                         <Button Grid.Column="5" Style="{StaticResource IconButton}"
                                 Command="{Binding SendTextCommand}"
                                 Margin="4,0,0,0" Width="42" Height="42" Padding="0">
-                            <TextBlock Text="вћ¤" FontSize="20" Foreground="White"/>
+                            <TextBlock Text="➤" FontSize="20" Foreground="White"/>
                         </Button>
                     </Grid>
                 </Border>
             </Grid>
         </Grid>
 
-        <!-- в•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђ RIGHT: User Info Panel в•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђ -->
+        <!-- ═══════════════ RIGHT: User Info Panel ════════════════ -->
         <Border Grid.Column="2" Width="220" Background="{StaticResource SurfaceBrush}"
                 BorderBrush="{StaticResource BorderBrush2}" BorderThickness="1,0,0,0"
                 Visibility="{Binding HasSelectedContact, Converter={StaticResource BoolToVis}}">
@@ -472,7 +472,7 @@
                         </StackPanel>
 
                         <Rectangle Height="1" Fill="{StaticResource BorderBrush2}" Margin="0,0,0,20"/>
-                        <TextBlock Text="Р Рќ Р¤ Рћ Р  Рњ Рђ Р¦ Р РЇ" FontSize="10" FontWeight="SemiBold"
+                        <TextBlock Text="И Н Ф О Р М А Ц И Я" FontSize="10" FontWeight="SemiBold"
                                    Foreground="{StaticResource TextSecBrush}" Margin="0,0,0,14"/>
 
                         <!-- hostname -->
@@ -483,7 +483,7 @@
 
                         <!-- MAC -->
                         <StackPanel Margin="0,0,0,10">
-                            <TextBlock Text="MAC-Р°РґСЂРµСЃ" FontSize="11" Foreground="{StaticResource TextSecBrush}" Margin="0,0,0,2"/>
+                            <TextBlock Text="MAC-адрес" FontSize="11" Foreground="{StaticResource TextSecBrush}" Margin="0,0,0,2"/>
                             <TextBlock Text="{Binding SelectedContact.MacAddress}" FontSize="12" TextWrapping="Wrap"
                                        FontFamily="Consolas"/>
                         </StackPanel>
@@ -504,12 +504,12 @@
 
                         <!-- Port -->
                         <StackPanel Margin="0,0,0,10">
-                            <TextBlock Text="РџРѕСЂС‚ TCP" FontSize="11" Foreground="{StaticResource TextSecBrush}" Margin="0,0,0,2"/>
+                            <TextBlock Text="Порт TCP" FontSize="11" Foreground="{StaticResource TextSecBrush}" Margin="0,0,0,2"/>
                             <TextBlock Text="{Binding SelectedContact.TcpPort}" FontSize="12"/>
                         </StackPanel>
 
                         <StackPanel Margin="0,0,0,10">
-                            <TextBlock Text="РџРѕСЃР»РµРґРЅСЏСЏ Р°РєС‚РёРІРЅРѕСЃС‚СЊ" FontSize="11" Foreground="{StaticResource TextSecBrush}" Margin="0,0,0,2"/>
+                            <TextBlock Text="Последняя активность" FontSize="11" Foreground="{StaticResource TextSecBrush}" Margin="0,0,0,2"/>
                             <TextBlock Text="{Binding SelectedContact.StatusText}" FontSize="12" TextWrapping="Wrap"/>
                         </StackPanel>
                     </StackPanel>
