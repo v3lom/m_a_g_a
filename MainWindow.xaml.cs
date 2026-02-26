@@ -1,28 +1,48 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
+﻿using System.Windows;
 using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
+using M_A_G_A.ViewModels;
 
 namespace M_A_G_A
 {
-    /// <summary>
-    /// Логика взаимодействия для MainWindow.xaml
-    /// </summary>
     public partial class MainWindow : Window
     {
+        private readonly AppViewModel _vm;
+
         public MainWindow()
         {
             InitializeComponent();
+            _vm = new AppViewModel();
+            DataContext = _vm;
+        }
+
+        private void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            if (e.ClickCount == 2) MaximizeClick(null, null);
+            else DragMove();
+        }
+
+        private void MinimizeClick(object sender, RoutedEventArgs e) =>
+            WindowState = WindowState.Minimized;
+
+        private void MaximizeClick(object sender, RoutedEventArgs e)
+        {
+            if (WindowState == WindowState.Maximized)
+                WindowState = WindowState.Normal;
+            else
+                WindowState = WindowState.Maximized;
+        }
+
+        private void CloseClick(object sender, RoutedEventArgs e)
+        {
+            _vm.Dispose();
+            Close();
+        }
+
+        protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
+        {
+            _vm.Dispose();
+            base.OnClosing(e);
         }
     }
 }
+
