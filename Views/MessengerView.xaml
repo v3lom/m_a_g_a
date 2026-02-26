@@ -53,7 +53,7 @@
                         <TextBlock Text="{Binding MyName}" FontSize="15" FontWeight="SemiBold"
                                    TextTrimming="CharacterEllipsis"/>
                         <TextBlock FontSize="10" Foreground="{StaticResource TextSecBrush}"
-                                   Text="{Binding MyIPv4}" TextTrimming="CharacterEllipsis"/>
+                                   Text="{Binding MyIPv4, Mode=OneWay}" TextTrimming="CharacterEllipsis"/>
                     </StackPanel>
 
                     <!-- Edit avatar -->
@@ -173,19 +173,19 @@
                                Foreground="{StaticResource TextSecBrush}" Margin="0,6,0,6"/>
                     <TextBlock FontSize="11" TextWrapping="Wrap" Foreground="{StaticResource TextSecBrush}">
                         <Run Text="MAC: "/>
-                        <Run Text="{Binding MyMacAddress}" Foreground="White"/>
+                        <Run Text="{Binding MyMacAddress, Mode=OneWay}" Foreground="White"/>
                     </TextBlock>
                     <TextBlock FontSize="11" TextWrapping="Wrap" Foreground="{StaticResource TextSecBrush}">
                         <Run Text="Host: "/>
-                        <Run Text="{Binding MyHostname}" Foreground="White"/>
+                        <Run Text="{Binding MyHostname, Mode=OneWay}" Foreground="White"/>
                     </TextBlock>
                     <TextBlock FontSize="11" TextWrapping="Wrap" Foreground="{StaticResource TextSecBrush}">
                         <Run Text="IPv4: "/>
-                        <Run Text="{Binding MyIPv4}" Foreground="White"/>
+                        <Run Text="{Binding MyIPv4, Mode=OneWay}" Foreground="White"/>
                     </TextBlock>
                     <TextBlock FontSize="11" TextWrapping="Wrap" Foreground="{StaticResource TextSecBrush}">
                         <Run Text="IPv6: "/>
-                        <Run Text="{Binding MyIPv6}" Foreground="White"/>
+                        <Run Text="{Binding MyIPv6, Mode=OneWay}" Foreground="White"/>
                     </TextBlock>
 
                     <!-- Export/Import -->
