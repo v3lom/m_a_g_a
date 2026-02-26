@@ -79,7 +79,7 @@
                 <StackPanel>
                     <TextBlock Text="ПОЛЬЗОВАТЕЛИ В СЕТИ"
                                FontSize="10" Foreground="{StaticResource TextSecBrush}"
-                               FontWeight="SemiBold" Margin="16,8,16,4" LetterSpacing="2"/>
+                               FontWeight="SemiBold" Margin="16,8,16,4"/>
 
                     <ItemsControl ItemsSource="{Binding FilteredContacts}">
                         <ItemsControl.ItemTemplate>
@@ -315,7 +315,8 @@
                 BorderBrush="{StaticResource BorderBrush2}" BorderThickness="1,0,0,0"
                 Visibility="{Binding HasSelectedContact, Converter={StaticResource BoolToVis}}">
             <ScrollViewer VerticalScrollBarVisibility="Auto">
-                <StackPanel Padding="20,24">
+                <Border Padding="20,24">
+                <StackPanel>
                     <!-- Large avatar -->
                     <Grid Width="80" Height="80" HorizontalAlignment="Center" Margin="0,0,0,16">
                         <Border CornerRadius="40" Background="{StaticResource Surface3Brush}" Width="80" Height="80">
@@ -352,8 +353,8 @@
                     <!-- Info rows -->
                     <Rectangle Height="1" Fill="{StaticResource BorderBrush2}" Margin="0,0,0,20"/>
 
-                    <TextBlock Text="ИНФОРМАЦИЯ" FontSize="10" FontWeight="SemiBold"
-                               Foreground="{StaticResource TextSecBrush}" LetterSpacing="2" Margin="0,0,0,14"/>
+                    <TextBlock Text="И Н Ф О Р М А Ц И Я" FontSize="10" FontWeight="SemiBold"
+                               Foreground="{StaticResource TextSecBrush}" Margin="0,0,0,14"/>
 
                     <StackPanel Margin="0,0,0,12">
                         <TextBlock Text="IP-адрес" FontSize="11" Foreground="{StaticResource TextSecBrush}" Margin="0,0,0,2"/>
@@ -370,6 +371,7 @@
                         <TextBlock Text="{Binding SelectedContact.StatusText}" FontSize="13" TextWrapping="Wrap"/>
                     </StackPanel>
                 </StackPanel>
+                </Border>
             </ScrollViewer>
         </Border>
     </Grid>

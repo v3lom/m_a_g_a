@@ -35,7 +35,10 @@ namespace M_A_G_A.Converters
     {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            bool b = value is bool bv && bv;
+            bool b;
+            if (value is bool bv) b = bv;
+            else if (value is int iv) b = iv != 0;
+            else b = value != null;
             bool invert = parameter?.ToString() == "invert";
             if (invert) b = !b;
             return b ? Visibility.Visible : Visibility.Collapsed;

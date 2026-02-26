@@ -4,9 +4,9 @@
     <Grid Background="{StaticResource BgBrush}">
         <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Width="340">
             <!-- Logo -->
-            <TextBlock Text="MAGA" FontSize="52" FontWeight="Black"
+            <TextBlock Text="M  A  G  A" FontSize="52" FontWeight="Black"
                        Foreground="White" HorizontalAlignment="Center"
-                       LetterSpacing="12" Margin="0,0,0,4"/>
+                       Margin="0,0,0,4"/>
             <TextBlock Text="Мессенджер локальной сети"
                        FontSize="13" Foreground="{StaticResource TextSecBrush}"
                        HorizontalAlignment="Center" Margin="0,0,0,48"/>

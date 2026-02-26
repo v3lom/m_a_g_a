@@ -9,9 +9,12 @@ namespace M_A_G_A.Models
         private DateTime _lastSeen;
         private byte[] _avatarBytes;
 
-        public string Id { get; set; }
+        public string Id { get; set; }          // deterministic MAC+hostname hash
         public string Username { get; set; }
-        public string IpAddress { get; set; }
+        public string MacAddress { get; set; }  // physical MAC
+        public string Hostname { get; set; }    // machine hostname
+        public string IpAddress { get; set; }   // v4
+        public string IPv6 { get; set; }        // v6 (may be empty)
         public int TcpPort { get; set; }
 
         public byte[] AvatarBytes
