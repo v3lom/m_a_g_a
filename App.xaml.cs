@@ -1,17 +1,21 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Configuration;
-using System.Data;
-using System.Linq;
-using System.Threading.Tasks;
-using System.Windows;
+﻿using System.Windows;
+using M_A_G_A.Helpers;
 
 namespace M_A_G_A
 {
-    /// <summary>
-    /// Логика взаимодействия для App.xaml
-    /// </summary>
     public partial class App : Application
     {
+        protected override void OnStartup(StartupEventArgs e)
+        {
+            base.OnStartup(e);
+            var win = new MainWindow();
+            // Start minimized if launched with --minimized flag (daemon mode)
+            if (AutoStartHelper.IsStartMinimized())
+            {
+                win.ShowInTaskbar = false;
+                win.WindowState   = System.Windows.WindowState.Minimized;
+            }
+            win.Show();
+        }
     }
 }

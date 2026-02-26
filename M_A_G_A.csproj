@@ -73,6 +73,10 @@
     <Reference Include="System.Net.Http" />
     <Reference Include="System.Drawing" />
     <Reference Include="System.Runtime.Serialization" />
+    <Reference Include="System.IO.Compression" />
+    <Reference Include="System.IO.Compression.FileSystem" />
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="Microsoft.Win32" Condition="False" />
     <Reference Include="System.Xaml">
       <RequiredTargetFramework>4.0</RequiredTargetFramework>
     </Reference>
@@ -121,6 +125,10 @@
     <Compile Include="Network\TcpChatClient.cs" />
     <Compile Include="Audio\AudioRecorder.cs" />
     <Compile Include="Helpers\JsonHelper.cs" />
+    <Compile Include="Helpers\NetworkHelper.cs" />
+    <Compile Include="Helpers\HistoryHelper.cs" />
+    <Compile Include="Helpers\AutoStartHelper.cs" />
+    <Compile Include="Helpers\MarkdownText.cs" />
     <Compile Include="Converters\Converters.cs" />
     <Compile Include="ViewModels\AppViewModel.cs" />
   </ItemGroup>

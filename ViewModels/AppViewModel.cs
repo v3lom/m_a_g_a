@@ -148,6 +148,9 @@ namespace M_A_G_A.ViewModels
         {
             _myId = NetworkHelper.GetStableId();
 
+            // Pre-load saved profile so the setup screen shows the existing name
+            PreloadProfile();
+
             StartAppCommand       = new RelayCommand(_ => StartApp(),              _ => !string.IsNullOrWhiteSpace(MyName));
             SendTextCommand       = new RelayCommand(_ => SendText(),              _ => !string.IsNullOrWhiteSpace(MessageInput) && SelectedContact != null);
             StartVoiceCommand     = new RelayCommand(_ => StartVoiceRecording(),   _ => SelectedContact != null && !IsRecording);
@@ -167,6 +170,16 @@ namespace M_A_G_A.ViewModels
 
             // Heartbeat checker
             new Timer(_ => CheckHeartbeats(), null, 5000, 5000);
+        }
+
+        private void PreloadProfile()
+        {
+            var cfg = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "MAGA");
+            Directory.CreateDirectory(cfg);
+            var namePath  = Path.Combine(cfg, "name.txt");
+            var avatarPath = Path.Combine(cfg, "avatar.png");
+            if (File.Exists(namePath))   { var n = File.ReadAllText(namePath).Trim(); if (!string.IsNullOrEmpty(n)) _myName = n; }
+            if (File.Exists(avatarPath)) _myAvatar = File.ReadAllBytes(avatarPath);
         }
 
         // ─── Setup ─────────────────────────────────────────────────
