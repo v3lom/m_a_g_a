@@ -16,6 +16,12 @@ namespace M_A_G_A.Views
                 if (window != null)
                     window.KeyDown += Window_KeyDown;
             };
+            Unloaded += (s, e) =>
+            {
+                var window = Window.GetWindow(this);
+                if (window != null)
+                    window.KeyDown -= Window_KeyDown;
+            };
         }
 
         private void Window_KeyDown(object sender, KeyEventArgs e)

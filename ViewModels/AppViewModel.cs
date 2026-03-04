@@ -500,9 +500,10 @@ namespace M_A_G_A.ViewModels
                 // ── Desktop notification ──────────────────────────────
                 if (_notificationsEnabled && _selectedContact?.Id != packet.SenderId)
                 {
-                    var title = packet.SenderName ?? "Новое сообщение";
-                    var body  = msg.Type == MessageType.Text
-                        ? (msg.Content?.Length > 80 ? msg.Content.Substring(0, 77) + "…" : msg.Content) ?? ""
+                    var title   = packet.SenderName ?? "Новое сообщение";
+                    var content = msg.Content ?? "";
+                    var body    = msg.Type == MessageType.Text
+                        ? (content.Length > 80 ? content.Substring(0, 77) + "…" : content)
                         : msg.Type == MessageType.Image ? "📷 Изображение"
                         : msg.Type == MessageType.File  ? $"📎 {msg.FileName}"
                         : "🎙 Голосовое сообщение";
