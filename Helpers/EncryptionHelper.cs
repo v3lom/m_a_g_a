@@ -1,7 +1,6 @@
 using System;
 using System.IO;
 using System.Security.Cryptography;
-using System.Text;
 
 namespace M_A_G_A.Helpers
 {
@@ -70,15 +69,47 @@ namespace M_A_G_A.Helpers
             catch { return null; }
         }
 
-        /// <summary>Returns a base64-encoded SHA-256 hash of the password.</summary>
+        /// <summary>
+        /// Returns a salted PBKDF2 hash of the password suitable for storage.
+        /// Format: base64([salt(16)][hash(32)]).
+        /// </summary>
         public static string HashPassword(string password)
         {
-            using (var sha = SHA256.Create())
-                return Convert.ToBase64String(sha.ComputeHash(Encoding.UTF8.GetBytes(password)));
+            var salt = new byte[16];
+            using (var rng = new RNGCryptoServiceProvider())
+                rng.GetBytes(salt);
+            using (var kdf = new Rfc2898DeriveBytes(password, salt, Iterations))
+            {
+                var hash = kdf.GetBytes(32);
+                var result = new byte[salt.Length + hash.Length];
+                Buffer.BlockCopy(salt, 0, result, 0, salt.Length);
+                Buffer.BlockCopy(hash, 0, result, salt.Length, hash.Length);
+                return Convert.ToBase64String(result);
+            }
         }
 
-        /// <summary>Verifies a plain-text password against a stored hash.</summary>
-        public static bool VerifyPassword(string password, string hash)
-            => !string.IsNullOrEmpty(password) && HashPassword(password) == hash;
+        /// <summary>Verifies a plain-text password against a stored PBKDF2 hash.</summary>
+        public static bool VerifyPassword(string password, string storedHash)
+        {
+            if (string.IsNullOrEmpty(password) || string.IsNullOrEmpty(storedHash)) return false;
+            try
+            {
+                var data = Convert.FromBase64String(storedHash);
+                if (data.Length < 48) return false;   // 16 salt + 32 hash
+                var salt = new byte[16];
+                Buffer.BlockCopy(data, 0, salt, 0, 16);
+                var stored = new byte[32];
+                Buffer.BlockCopy(data, 16, stored, 0, 32);
+                using (var kdf = new Rfc2898DeriveBytes(password, salt, Iterations))
+                {
+                    var computed = kdf.GetBytes(32);
+                    // Constant-time comparison
+                    int diff = 0;
+                    for (int i = 0; i < 32; i++) diff |= stored[i] ^ computed[i];
+                    return diff == 0;
+                }
+            }
+            catch { return false; }
+        }
     }
 }

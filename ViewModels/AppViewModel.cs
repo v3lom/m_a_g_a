@@ -816,10 +816,9 @@ namespace M_A_G_A.ViewModels
         // ─── Folders ──────────────────────────────────────────────
         private void CreateFolder()
         {
-            var name = Microsoft.VisualBasic.Interaction.InputBox(
-                "Введите название новой папки:", "Создать папку", "Новая папка");
-            if (string.IsNullOrWhiteSpace(name)) return;
-            var folder = new ChatFolder { Name = name.Trim() };
+            var dlg = new M_A_G_A.Views.PasswordDialog("Введите название новой папки:");
+            if (dlg.ShowDialog() != true || string.IsNullOrWhiteSpace(dlg.Password)) return;
+            var folder = new ChatFolder { Name = dlg.Password.Trim() };
             Folders.Add(folder);
             RebuildFolderFilters();
             SaveSettings();
@@ -864,11 +863,10 @@ namespace M_A_G_A.ViewModels
         // ─── Password ─────────────────────────────────────────────
         private void SetPassword()
         {
-            var pwd = Microsoft.VisualBasic.Interaction.InputBox(
-                "Введите новый пароль (оставьте пустым чтобы убрать):",
-                "Защита паролем", "");
-            if (pwd == null) return;  // cancelled
+            var dlg = new M_A_G_A.Views.PasswordDialog("Введите новый пароль (пустой — убрать защиту):");
+            if (dlg.ShowDialog() != true) return;
             if (_settings == null) _settings = new AppSettings();
+            var pwd = dlg.Password;
             _settings.PasswordHash = string.IsNullOrEmpty(pwd)
                 ? null
                 : EncryptionHelper.HashPassword(pwd);

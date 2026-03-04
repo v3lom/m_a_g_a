@@ -93,7 +93,7 @@
                         <!-- "All" pill -->
                         <Button Command="{Binding SelectFolderFilterCommand}" CommandParameter="{x:Null}"
                                 Style="{StaticResource IconButton}" Padding="10,4" Margin="0,0,4,0" FontSize="11"
-                                Background="{Binding SelectedFolderFilter, Converter={StaticResource NullToVis}, ConverterParameter=invert}">
+                                Background="{StaticResource Surface3Brush}">
                             <TextBlock Text="Все"/>
                         </Button>
                         <!-- Folder pills -->
@@ -340,7 +340,6 @@
                                 ToolTip="Убрать пароль"/>
                     </StackPanel>
                     <TextBlock FontSize="10" Foreground="{StaticResource TextSecBrush}" Margin="0,4,0,0"
-                               Text="{Binding HasPassword, Converter={StaticResource BoolToVis}}"
                                Visibility="{Binding HasPassword, Converter={StaticResource BoolToVis}}">
                         <Run Text="🔐 Защита паролем включена"/>
                     </TextBlock>

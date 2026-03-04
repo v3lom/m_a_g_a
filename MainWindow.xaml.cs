@@ -34,15 +34,14 @@ namespace M_A_G_A
             // Show password prompt until correct password entered or dialog cancelled
             while (true)
             {
-                var entered = Microsoft.VisualBasic.Interaction.InputBox(
-                    "Введите пароль для запуска MAGA Messenger:",
-                    "Защита паролем", "");
-                if (entered == null) // cancelled
+                var dlg = new M_A_G_A.Views.PasswordDialog("Введите пароль для запуска MAGA Messenger:");
+                dlg.Owner = this;
+                if (dlg.ShowDialog() != true)
                 {
                     ExitApp();
                     return;
                 }
-                if (EncryptionHelper.VerifyPassword(entered, settings.PasswordHash))
+                if (EncryptionHelper.VerifyPassword(dlg.Password, settings.PasswordHash))
                     break;
                 MessageBox.Show("Неверный пароль. Попробуйте ещё раз.",
                     "Ошибка", MessageBoxButton.OK, MessageBoxImage.Warning);
