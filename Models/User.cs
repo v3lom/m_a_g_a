@@ -8,6 +8,8 @@ namespace M_A_G_A.Models
         private bool _isOnline;
         private DateTime _lastSeen;
         private byte[] _avatarBytes;
+        private byte[] _chatBackground;
+        private string _folderName;
 
         public string Id { get; set; }          // deterministic MAC+hostname hash
         public string Username { get; set; }
@@ -21,6 +23,22 @@ namespace M_A_G_A.Models
         {
             get => _avatarBytes;
             set { _avatarBytes = value; OnPropertyChanged(nameof(AvatarBytes)); }
+        }
+
+        /// <summary>Local-only per-chat background image (not sent over network).</summary>
+        public byte[] ChatBackground
+        {
+            get => _chatBackground;
+            set { _chatBackground = value; OnPropertyChanged(nameof(ChatBackground)); OnPropertyChanged(nameof(HasChatBackground)); }
+        }
+
+        public bool HasChatBackground => _chatBackground != null && _chatBackground.Length > 0;
+
+        /// <summary>Name of the folder this contact is placed in (null = uncategorized).</summary>
+        public string FolderName
+        {
+            get => _folderName;
+            set { _folderName = value; OnPropertyChanged(nameof(FolderName)); }
         }
 
         public bool IsOnline

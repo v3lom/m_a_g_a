@@ -8,6 +8,12 @@ namespace M_A_G_A
         protected override void OnStartup(StartupEventArgs e)
         {
             base.OnStartup(e);
+
+            // Apply saved theme before any window is created so StaticResource lookups
+            // in styles pick up the correct brush values at first use.
+            var isLight = AppSettingsStore.Load().IsLightTheme;
+            ThemeManager.Apply(isLight);
+
             var win = new MainWindow();
             // Start minimized if launched with --minimized flag (daemon mode)
             if (AutoStartHelper.IsStartMinimized())

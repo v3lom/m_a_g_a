@@ -14,6 +14,7 @@
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
@@ -83,8 +84,47 @@
                 </Grid>
             </Border>
 
+            <!-- Folder filter bar -->
+            <Border Grid.Row="2" Padding="8,4"
+                    BorderBrush="{StaticResource BorderBrush2}" BorderThickness="0,0,0,1"
+                    Visibility="{Binding Folders.Count, Converter={StaticResource BoolToVis}}">
+                <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+                    <StackPanel Orientation="Horizontal">
+                        <!-- "All" pill -->
+                        <Button Command="{Binding SelectFolderFilterCommand}" CommandParameter="{x:Null}"
+                                Style="{StaticResource IconButton}" Padding="10,4" Margin="0,0,4,0" FontSize="11"
+                                Background="{Binding SelectedFolderFilter, Converter={StaticResource NullToVis}, ConverterParameter=invert}">
+                            <TextBlock Text="Все"/>
+                        </Button>
+                        <!-- Folder pills -->
+                        <ItemsControl ItemsSource="{Binding Folders}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <StackPanel Orientation="Horizontal"/>
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Button Command="{Binding DataContext.SelectFolderFilterCommand,
+                                                    RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                            CommandParameter="{Binding Name}"
+                                            Style="{StaticResource IconButton}"
+                                            Background="{StaticResource Surface3Brush}"
+                                            Padding="10,4" Margin="0,0,4,0" FontSize="11">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="📁 "/>
+                                            <TextBlock Text="{Binding Name}"/>
+                                        </StackPanel>
+                                    </Button>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+
             <!-- Contacts list -->
-            <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto"
+            <ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Auto"
                           HorizontalScrollBarVisibility="Disabled">
                 <StackPanel>
                     <TextBlock Text="ПОЛЬЗОВАТЕЛИ В СЕТИ"
@@ -151,7 +191,7 @@
             </ScrollViewer>
 
             <!-- Settings panel (inline) -->
-            <Border Grid.Row="3"
+            <Border Grid.Row="4"
                     Visibility="{Binding ShowSettings, Converter={StaticResource BoolToVis}}"
                     Background="{StaticResource Surface2Brush}"
                     BorderBrush="{StaticResource BorderBrush2}" BorderThickness="0,1,0,0"
@@ -234,6 +274,76 @@
                                 Padding="10,6" FontSize="14" Margin="4,0,0,0"
                                 ToolTip="Отправить запрос по IP"/>
                     </Grid>
+
+                    <!-- ─── Theme ─── -->
+                    <TextBlock Text="ОФОРМЛЕНИЕ" FontSize="10" FontWeight="SemiBold"
+                               Foreground="{StaticResource TextSecBrush}" Margin="0,14,0,6"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                        <CheckBox IsChecked="{Binding IsLightTheme}" VerticalAlignment="Center"
+                                  Foreground="White" Cursor="Hand"/>
+                        <TextBlock Text=" Светлая тема (применится при перезапуске)"
+                                   FontSize="12" VerticalAlignment="Center"/>
+                    </StackPanel>
+
+                    <!-- Global background -->
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                        <Button Content="🖼 Обои чата" Style="{StaticResource IconButton}"
+                                Command="{Binding PickGlobalBackgroundCommand}"
+                                Background="{StaticResource Surface3Brush}"
+                                Padding="10,6" FontSize="11" Margin="0,0,6,0"
+                                ToolTip="Установить глобальные обои"/>
+                        <Button Content="✕" Style="{StaticResource IconButton}"
+                                Command="{Binding ClearGlobalBackgroundCommand}"
+                                Background="{StaticResource Surface3Brush}"
+                                Padding="10,6" FontSize="11"
+                                ToolTip="Убрать глобальные обои"/>
+                    </StackPanel>
+
+                    <!-- ─── Folders ─── -->
+                    <TextBlock Text="ПАПКИ" FontSize="10" FontWeight="SemiBold"
+                               Foreground="{StaticResource TextSecBrush}" Margin="0,10,0,6"/>
+                    <Button Content="+ Создать папку" Style="{StaticResource IconButton}"
+                            Command="{Binding CreateFolderCommand}"
+                            Background="{StaticResource Surface3Brush}"
+                            Padding="10,6" FontSize="11" HorizontalAlignment="Left" Margin="0,0,0,6"/>
+                    <ItemsControl ItemsSource="{Binding Folders}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Orientation="Horizontal" Margin="0,2">
+                                    <TextBlock Text="📁 " FontSize="12" VerticalAlignment="Center"/>
+                                    <TextBlock Text="{Binding Name}" FontSize="12" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                    <Button Content="✕" Style="{StaticResource IconButton}"
+                                            Command="{Binding DataContext.DeleteFolderCommand,
+                                                    RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                            CommandParameter="{Binding}"
+                                            Padding="4,2" FontSize="10"
+                                            Foreground="{StaticResource TextSecBrush}"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <!-- ─── Password ─── -->
+                    <TextBlock Text="БЕЗОПАСНОСТЬ" FontSize="10" FontWeight="SemiBold"
+                               Foreground="{StaticResource TextSecBrush}" Margin="0,14,0,6"/>
+                    <StackPanel Orientation="Horizontal">
+                        <Button Content="🔒 Пароль" Style="{StaticResource IconButton}"
+                                Command="{Binding SetPasswordCommand}"
+                                Background="{StaticResource Surface3Brush}"
+                                Padding="10,6" FontSize="11" Margin="0,0,6,0"
+                                ToolTip="Установить/изменить пароль"/>
+                        <Button Content="Убрать" Style="{StaticResource IconButton}"
+                                Command="{Binding ClearPasswordCommand}"
+                                Background="{StaticResource Surface3Brush}"
+                                Padding="10,6" FontSize="11"
+                                Visibility="{Binding HasPassword, Converter={StaticResource BoolToVis}}"
+                                ToolTip="Убрать пароль"/>
+                    </StackPanel>
+                    <TextBlock FontSize="10" Foreground="{StaticResource TextSecBrush}" Margin="0,4,0,0"
+                               Text="{Binding HasPassword, Converter={StaticResource BoolToVis}}"
+                               Visibility="{Binding HasPassword, Converter={StaticResource BoolToVis}}">
+                        <Run Text="🔐 Защита паролем включена"/>
+                    </TextBlock>
                 </StackPanel>
             </Border>
         </Grid>
@@ -257,6 +367,7 @@
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
@@ -302,11 +413,12 @@
                     </Grid>
                 </Border>
 
-                <!-- Messages list -->
+                <!-- Messages list (with optional background) -->
                 <ScrollViewer Grid.Row="1" x:Name="MsgScroll" Padding="16,8"
                               VerticalScrollBarVisibility="Auto"
                               HorizontalScrollBarVisibility="Disabled"
-                              ScrollChanged="MsgScroll_ScrollChanged">
+                              ScrollChanged="MsgScroll_ScrollChanged"
+                              Background="{Binding ActiveChatBackground, Converter={StaticResource BytesToBrush}}">
                     <ItemsControl ItemsSource="{Binding CurrentMessages}" x:Name="MsgList">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
@@ -419,8 +531,80 @@
                     </ItemsControl>
                 </ScrollViewer>
 
+                <!-- ─── Emoji Picker Panel ─── -->
+                <Border Grid.Row="2"
+                        Visibility="{Binding IsEmojiPickerOpen, Converter={StaticResource BoolToVis}}"
+                        Background="{StaticResource Surface2Brush}"
+                        BorderBrush="{StaticResource BorderBrush2}" BorderThickness="0,1,0,0"
+                        Padding="8,6" MaxHeight="160">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                        <WrapPanel>
+                            <!-- Faces -->
+                            <Button Style="{StaticResource IconButton}" Command="{Binding InsertEmojiCommand}" CommandParameter="😀" FontSize="20" Width="36" Height="36" Padding="0" ToolTip="😀"/>
+                            <Button Style="{StaticResource IconButton}" Command="{Binding InsertEmojiCommand}" CommandParameter="😂" FontSize="20" Width="36" Height="36" Padding="0" ToolTip="😂"/>
+                            <Button Style="{StaticResource IconButton}" Command="{Binding InsertEmojiCommand}" CommandParameter="🥹" FontSize="20" Width="36" Height="36" Padding="0"/>
+                            <Button Style="{StaticResource IconButton}" Command="{Binding InsertEmojiCommand}" CommandParameter="😊" FontSize="20" Width="36" Height="36" Padding="0"/>
+                            <Button Style="{StaticResource IconButton}" Command="{Binding InsertEmojiCommand}" CommandParameter="😎" FontSize="20" Width="36" Height="36" Padding="0"/>
+                            <Button Style="{StaticResource IconButton}" Command="{Binding InsertEmojiCommand}" CommandParameter="🤔" FontSize="20" Width="36" Height="36" Padding="0"/>
+                            <Button Style="{StaticResource IconButton}" Command="{Binding InsertEmojiCommand}" CommandParameter="😴" FontSize="20" Width="36" Height="36" Padding="0"/>
+                            <Button Style="{StaticResource IconButton}" Command="{Binding InsertEmojiCommand}" CommandParameter="😭" FontSize="20" Width="36" Height="36" Padding="0"/>
+                            <Button Style="{StaticResource IconButton}" Command="{Binding InsertEmojiCommand}" CommandParameter="😱" FontSize="20" Width="36" Height="36" Padding="0"/>
+                            <Button Style="{StaticResource IconButton}" Command="{Binding InsertEmojiCommand}" CommandParameter="🤣" FontSize="20" Width="36" Height="36" Padding="0"/>
+                            <Button Style="{StaticResource IconButton}" Command="{Binding InsertEmojiCommand}" CommandParameter="🙄" FontSize="20" Width="36" Height="36" Padding="0"/>
+                            <Button Style="{StaticResource IconButton}" Command="{Binding InsertEmojiCommand}" CommandParameter="🤩" FontSize="20" Width="36" Height="36" Padding="0"/>
+                            <Button Style="{StaticResource IconButton}" Command="{Binding InsertEmojiCommand}" CommandParameter="😏" FontSize="20" Width="36" Height="36" Padding="0"/>
+                            <Button Style="{StaticResource IconButton}" Command="{Binding InsertEmojiCommand}" CommandParameter="😤" FontSize="20" Width="36" Height="36" Padding="0"/>
+                            <Button Style="{StaticResource IconButton}" Command="{Binding InsertEmojiCommand}" CommandParameter="🥶" FontSize="20" Width="36" Height="36" Padding="0"/>
+                            <!-- Love -->
+                            <Button Style="{StaticResource IconButton}" Command="{Binding InsertEmojiCommand}" CommandParameter="❤️" FontSize="20" Width="36" Height="36" Padding="0"/>
+                            <Button Style="{StaticResource IconButton}" Command="{Binding InsertEmojiCommand}" CommandParameter="🧡" FontSize="20" Width="36" Height="36" Padding="0"/>
+                            <Button Style="{StaticResource IconButton}" Command="{Binding InsertEmojiCommand}" CommandParameter="💛" FontSize="20" Width="36" Height="36" Padding="0"/>
+                            <Button Style="{StaticResource IconButton}" Command="{Binding InsertEmojiCommand}" CommandParameter="💚" FontSize="20" Width="36" Height="36" Padding="0"/>
+                            <Button Style="{StaticResource IconButton}" Command="{Binding InsertEmojiCommand}" CommandParameter="💙" FontSize="20" Width="36" Height="36" Padding="0"/>
+                            <Button Style="{StaticResource IconButton}" Command="{Binding InsertEmojiCommand}" CommandParameter="💜" FontSize="20" Width="36" Height="36" Padding="0"/>
+                            <Button Style="{StaticResource IconButton}" Command="{Binding InsertEmojiCommand}" CommandParameter="🖤" FontSize="20" Width="36" Height="36" Padding="0"/>
+                            <Button Style="{StaticResource IconButton}" Command="{Binding InsertEmojiCommand}" CommandParameter="💔" FontSize="20" Width="36" Height="36" Padding="0"/>
+                            <Button Style="{StaticResource IconButton}" Command="{Binding InsertEmojiCommand}" CommandParameter="💕" FontSize="20" Width="36" Height="36" Padding="0"/>
+                            <Button Style="{StaticResource IconButton}" Command="{Binding InsertEmojiCommand}" CommandParameter="😘" FontSize="20" Width="36" Height="36" Padding="0"/>
+                            <!-- Hands -->
+                            <Button Style="{StaticResource IconButton}" Command="{Binding InsertEmojiCommand}" CommandParameter="👍" FontSize="20" Width="36" Height="36" Padding="0"/>
+                            <Button Style="{StaticResource IconButton}" Command="{Binding InsertEmojiCommand}" CommandParameter="👎" FontSize="20" Width="36" Height="36" Padding="0"/>
+                            <Button Style="{StaticResource IconButton}" Command="{Binding InsertEmojiCommand}" CommandParameter="👋" FontSize="20" Width="36" Height="36" Padding="0"/>
+                            <Button Style="{StaticResource IconButton}" Command="{Binding InsertEmojiCommand}" CommandParameter="🤝" FontSize="20" Width="36" Height="36" Padding="0"/>
+                            <Button Style="{StaticResource IconButton}" Command="{Binding InsertEmojiCommand}" CommandParameter="🙏" FontSize="20" Width="36" Height="36" Padding="0"/>
+                            <Button Style="{StaticResource IconButton}" Command="{Binding InsertEmojiCommand}" CommandParameter="✊" FontSize="20" Width="36" Height="36" Padding="0"/>
+                            <Button Style="{StaticResource IconButton}" Command="{Binding InsertEmojiCommand}" CommandParameter="✌️" FontSize="20" Width="36" Height="36" Padding="0"/>
+                            <Button Style="{StaticResource IconButton}" Command="{Binding InsertEmojiCommand}" CommandParameter="👌" FontSize="20" Width="36" Height="36" Padding="0"/>
+                            <Button Style="{StaticResource IconButton}" Command="{Binding InsertEmojiCommand}" CommandParameter="🤙" FontSize="20" Width="36" Height="36" Padding="0"/>
+                            <Button Style="{StaticResource IconButton}" Command="{Binding InsertEmojiCommand}" CommandParameter="💪" FontSize="20" Width="36" Height="36" Padding="0"/>
+                            <!-- Nature/Fun -->
+                            <Button Style="{StaticResource IconButton}" Command="{Binding InsertEmojiCommand}" CommandParameter="🔥" FontSize="20" Width="36" Height="36" Padding="0"/>
+                            <Button Style="{StaticResource IconButton}" Command="{Binding InsertEmojiCommand}" CommandParameter="✨" FontSize="20" Width="36" Height="36" Padding="0"/>
+                            <Button Style="{StaticResource IconButton}" Command="{Binding InsertEmojiCommand}" CommandParameter="⭐" FontSize="20" Width="36" Height="36" Padding="0"/>
+                            <Button Style="{StaticResource IconButton}" Command="{Binding InsertEmojiCommand}" CommandParameter="🌟" FontSize="20" Width="36" Height="36" Padding="0"/>
+                            <Button Style="{StaticResource IconButton}" Command="{Binding InsertEmojiCommand}" CommandParameter="🌈" FontSize="20" Width="36" Height="36" Padding="0"/>
+                            <Button Style="{StaticResource IconButton}" Command="{Binding InsertEmojiCommand}" CommandParameter="🌸" FontSize="20" Width="36" Height="36" Padding="0"/>
+                            <Button Style="{StaticResource IconButton}" Command="{Binding InsertEmojiCommand}" CommandParameter="🎉" FontSize="20" Width="36" Height="36" Padding="0"/>
+                            <Button Style="{StaticResource IconButton}" Command="{Binding InsertEmojiCommand}" CommandParameter="🎊" FontSize="20" Width="36" Height="36" Padding="0"/>
+                            <Button Style="{StaticResource IconButton}" Command="{Binding InsertEmojiCommand}" CommandParameter="🎈" FontSize="20" Width="36" Height="36" Padding="0"/>
+                            <Button Style="{StaticResource IconButton}" Command="{Binding InsertEmojiCommand}" CommandParameter="🎁" FontSize="20" Width="36" Height="36" Padding="0"/>
+                            <!-- Food/Other -->
+                            <Button Style="{StaticResource IconButton}" Command="{Binding InsertEmojiCommand}" CommandParameter="🍕" FontSize="20" Width="36" Height="36" Padding="0"/>
+                            <Button Style="{StaticResource IconButton}" Command="{Binding InsertEmojiCommand}" CommandParameter="🍔" FontSize="20" Width="36" Height="36" Padding="0"/>
+                            <Button Style="{StaticResource IconButton}" Command="{Binding InsertEmojiCommand}" CommandParameter="🍣" FontSize="20" Width="36" Height="36" Padding="0"/>
+                            <Button Style="{StaticResource IconButton}" Command="{Binding InsertEmojiCommand}" CommandParameter="☕" FontSize="20" Width="36" Height="36" Padding="0"/>
+                            <Button Style="{StaticResource IconButton}" Command="{Binding InsertEmojiCommand}" CommandParameter="🎵" FontSize="20" Width="36" Height="36" Padding="0"/>
+                            <Button Style="{StaticResource IconButton}" Command="{Binding InsertEmojiCommand}" CommandParameter="🎮" FontSize="20" Width="36" Height="36" Padding="0"/>
+                            <Button Style="{StaticResource IconButton}" Command="{Binding InsertEmojiCommand}" CommandParameter="💻" FontSize="20" Width="36" Height="36" Padding="0"/>
+                            <Button Style="{StaticResource IconButton}" Command="{Binding InsertEmojiCommand}" CommandParameter="📱" FontSize="20" Width="36" Height="36" Padding="0"/>
+                            <Button Style="{StaticResource IconButton}" Command="{Binding InsertEmojiCommand}" CommandParameter="💡" FontSize="20" Width="36" Height="36" Padding="0"/>
+                            <Button Style="{StaticResource IconButton}" Command="{Binding InsertEmojiCommand}" CommandParameter="🚀" FontSize="20" Width="36" Height="36" Padding="0"/>
+                        </WrapPanel>
+                    </ScrollViewer>
+                </Border>
+
                 <!-- Input area -->
-                <Border Grid.Row="2" Padding="12,10,12,4"
+                <Border Grid.Row="3" Padding="12,10,12,4"
                         Background="{StaticResource SurfaceBrush}"
                         BorderBrush="{StaticResource BorderBrush2}" BorderThickness="0,1,0,0">
                     <StackPanel>
@@ -429,13 +613,22 @@
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
 
-                        <!-- Attach image -->
+                        <!-- Emoji picker toggle -->
                         <Button Grid.Column="0" Style="{StaticResource IconButton}"
+                                Command="{Binding ToggleEmojiPickerCommand}"
+                                Width="38" Height="38" Padding="0"
+                                ToolTip="Эмодзи" Margin="0,0,4,0">
+                            <TextBlock Text="😊" FontSize="17"/>
+                        </Button>
+
+                        <!-- Attach image -->
+                        <Button Grid.Column="1" Style="{StaticResource IconButton}"
                                 Command="{Binding SendImageCommand}"
                                 Width="38" Height="38" Padding="0"
                                 ToolTip="Отправить изображение" Margin="0,0,4,0">
@@ -443,7 +636,7 @@
                         </Button>
 
                         <!-- Attach file -->
-                        <Button Grid.Column="1" Style="{StaticResource IconButton}"
+                        <Button Grid.Column="2" Style="{StaticResource IconButton}"
                                 Command="{Binding SendFileCommand}"
                                 Width="38" Height="38" Padding="0"
                                 ToolTip="Отправить файл" Margin="0,0,4,0">
@@ -451,7 +644,7 @@
                         </Button>
 
                         <!-- Voice file -->
-                        <Button Grid.Column="2" Style="{StaticResource IconButton}"
+                        <Button Grid.Column="3" Style="{StaticResource IconButton}"
                                 Command="{Binding SendVoiceFileCommand}"
                                 Width="38" Height="38" Padding="0"
                                 ToolTip="Отправить аудиофайл" Margin="0,0,8,0">
@@ -459,7 +652,7 @@
                         </Button>
 
                         <!-- Text input (supports markdown, Shift+Enter = newline) -->
-                        <TextBox Grid.Column="3" Style="{StaticResource ModernTextBox}"
+                        <TextBox Grid.Column="4" Style="{StaticResource ModernTextBox}"
                                  Text="{Binding MessageInput, UpdateSourceTrigger=PropertyChanged}"
                                  Padding="14,10" FontSize="14"
                                  KeyDown="MessageInput_KeyDown"
@@ -467,14 +660,14 @@
                                  ToolTip="Markdown: **жирный** *курсив* `код` [ссылка](url) ~~зачёркнутый~~"/>
 
                         <!-- Voice record / stop -->
-                        <Button Grid.Column="4" Style="{StaticResource IconButton}"
+                        <Button Grid.Column="5" Style="{StaticResource IconButton}"
                                 Command="{Binding StartVoiceCommand}"
                                 Margin="8,0,0,0" Width="42" Height="42" Padding="0"
                                 Visibility="{Binding IsRecording, Converter={StaticResource BoolToVis}, ConverterParameter=invert}"
                                 ToolTip="Записать голосовое">
                             <TextBlock Text="🎙" FontSize="20"/>
                         </Button>
-                        <Button Grid.Column="4" Style="{StaticResource IconButton}"
+                        <Button Grid.Column="5" Style="{StaticResource IconButton}"
                                 Command="{Binding StopVoiceCommand}"
                                 Margin="8,0,0,0" Width="42" Height="42" Padding="0"
                                 Visibility="{Binding IsRecording, Converter={StaticResource BoolToVis}}"
@@ -483,7 +676,7 @@
                         </Button>
 
                         <!-- Send -->
-                        <Button Grid.Column="5" Style="{StaticResource IconButton}"
+                        <Button Grid.Column="6" Style="{StaticResource IconButton}"
                                 Command="{Binding SendTextCommand}"
                                 Margin="4,0,0,0" Width="42" Height="42" Padding="0">
                             <TextBlock Text="➤" FontSize="20" Foreground="White"/>
@@ -575,6 +768,56 @@
                             <TextBlock Text="Последняя активность" FontSize="11" Foreground="{StaticResource TextSecBrush}" Margin="0,0,0,2"/>
                             <TextBlock Text="{Binding SelectedContact.StatusText}" FontSize="12" TextWrapping="Wrap"/>
                         </StackPanel>
+
+                        <!-- Per-chat background -->
+                        <Rectangle Height="1" Fill="{StaticResource BorderBrush2}" Margin="0,14,0,14"/>
+                        <TextBlock Text="НАСТРОЙКИ ЧАТА" FontSize="10" FontWeight="SemiBold"
+                                   Foreground="{StaticResource TextSecBrush}" Margin="0,0,0,10"/>
+                        <Button Content="🖼 Обои чата" Style="{StaticResource IconButton}"
+                                Command="{Binding PickContactBackgroundCommand}"
+                                Background="{StaticResource Surface3Brush}"
+                                Padding="10,6" FontSize="11" HorizontalAlignment="Stretch"
+                                Margin="0,0,0,6" ToolTip="Установить обои для этого чата"/>
+                        <Button Content="✕ Убрать обои" Style="{StaticResource IconButton}"
+                                Command="{Binding ClearContactBackgroundCommand}"
+                                Background="{StaticResource Surface3Brush}"
+                                Padding="10,6" FontSize="11" HorizontalAlignment="Stretch"
+                                Margin="0,0,0,10"
+                                Visibility="{Binding SelectedContact.HasChatBackground, Converter={StaticResource BoolToVis}}"
+                                ToolTip="Убрать обои этого чата"/>
+
+                        <!-- Folder assignment -->
+                        <TextBlock Text="ПАПКА" FontSize="10" FontWeight="SemiBold"
+                                   Foreground="{StaticResource TextSecBrush}" Margin="0,0,0,6"/>
+                        <TextBlock FontSize="11" Foreground="{StaticResource TextSecBrush}" Margin="0,0,0,6">
+                            <Run Text="Текущая: "/>
+                            <Run Text="{Binding SelectedContact.FolderName, TargetNullValue='Без папки'}" Foreground="White"/>
+                        </TextBlock>
+                        <ItemsControl ItemsSource="{Binding Folders}"
+                                      Visibility="{Binding Folders.Count, Converter={StaticResource BoolToVis}}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Button Command="{Binding DataContext.SetContactFolderCommand,
+                                                    RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                            CommandParameter="{Binding Name}"
+                                            Style="{StaticResource IconButton}"
+                                            Background="{StaticResource Surface3Brush}"
+                                            Padding="8,4" Margin="0,2" HorizontalAlignment="Stretch"
+                                            FontSize="11">
+                                        <TextBlock TextTrimming="CharacterEllipsis">
+                                            <Run Text="📁 "/>
+                                            <Run Text="{Binding Name}"/>
+                                        </TextBlock>
+                                    </Button>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <Button Content="✕ Без папки" Style="{StaticResource IconButton}"
+                                Command="{Binding SetContactFolderCommand}"
+                                CommandParameter="{x:Null}"
+                                Background="{StaticResource Surface3Brush}"
+                                Padding="8,4" Margin="0,4,0,0" HorizontalAlignment="Stretch" FontSize="11"
+                                Visibility="{Binding SelectedContact.FolderName, Converter={StaticResource NullToVis}}"/>
                     </StackPanel>
                 </Border>
             </ScrollViewer>
