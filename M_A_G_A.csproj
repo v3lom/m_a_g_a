@@ -144,6 +144,7 @@
     <Compile Include="Helpers\EncryptionHelper.cs" />
     <Compile Include="Helpers\ThemeManager.cs" />
     <Compile Include="Helpers\AppSettingsStore.cs" />
+    <Compile Include="Helpers\AppLogger.cs" />
     <Compile Include="Converters\Converters.cs" />
     <Compile Include="ViewModels\AppViewModel.cs" />
   </ItemGroup>

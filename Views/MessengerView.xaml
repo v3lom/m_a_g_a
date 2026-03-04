@@ -161,8 +161,17 @@
                                                      Stroke="{StaticResource SurfaceBrush}" StrokeThickness="2"/>
                                         </Grid>
                                         <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                            <TextBlock Text="{Binding Username}" FontSize="14" FontWeight="Medium"
-                                                       TextTrimming="CharacterEllipsis"/>
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Text="{Binding Username}" FontSize="14" FontWeight="Medium"
+                                                           TextTrimming="CharacterEllipsis" MaxWidth="130"/>
+                                                <Border Background="#CC2244" CornerRadius="9"
+                                                        MinWidth="18" Height="18" Margin="6,0,0,0" Padding="4,0"
+                                                        Visibility="{Binding HasUnread, Converter={StaticResource BoolToVis}}">
+                                                    <TextBlock Text="{Binding UnreadCount}" FontSize="10"
+                                                               Foreground="White" FontWeight="Bold"
+                                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                </Border>
+                                            </StackPanel>
                                             <TextBlock FontSize="11" Foreground="{StaticResource TextSecBrush}"
                                                        TextTrimming="CharacterEllipsis">
                                                 <TextBlock.Text>
@@ -199,6 +208,20 @@
                 <StackPanel>
                     <TextBlock Text="НАСТРОЙКИ" FontSize="10" FontWeight="SemiBold"
                                Foreground="{StaticResource TextSecBrush}" Margin="0,0,0,10"/>
+
+                    <!-- Bio section -->
+                    <TextBlock Text="МОЙ ПРОФИЛЬ" FontSize="10" FontWeight="SemiBold"
+                               Foreground="{StaticResource TextSecBrush}" Margin="0,0,0,6"/>
+                    <TextBox Style="{StaticResource ModernTextBox}"
+                             Text="{Binding MyBio, UpdateSourceTrigger=PropertyChanged}"
+                             AcceptsReturn="True" TextWrapping="Wrap" MaxHeight="80"
+                             MaxLength="1024" FontSize="12" Padding="10,8"
+                             VerticalScrollBarVisibility="Auto" Margin="0,0,0,6"
+                             ToolTip="О себе (до 1024 символов)"/>
+                    <Button Content="💾 Сохранить профиль и уведомить всех" Style="{StaticResource IconButton}"
+                            Command="{Binding BroadcastProfileCommand}"
+                            Background="{StaticResource Surface3Brush}"
+                            Padding="10,6" FontSize="11" Margin="0,0,0,10" HorizontalAlignment="Left"/>
 
                     <!-- Auto-start -->
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
@@ -402,13 +425,22 @@
                                            FontSize="12" Foreground="{StaticResource TextSecBrush}"/>
                             </StackPanel>
                         </StackPanel>
-                        <!-- Close chat (ESC) -->
-                        <Button Grid.Column="2" Style="{StaticResource IconButton}"
-                                Command="{Binding CloseContactCommand}"
-                                Width="36" Height="36" Padding="0"
-                                ToolTip="Закрыть чат (ESC)">
-                            <TextBlock Text="✕" FontSize="13" Foreground="{StaticResource TextSecBrush}"/>
-                        </Button>
+                        <!-- Header action buttons -->
+                        <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                            <Button Style="{StaticResource IconButton}"
+                                    Command="{Binding ToggleSelectModeCommand}"
+                                    Width="36" Height="36" Padding="0"
+                                    Margin="0,0,4,0"
+                                    ToolTip="Режим выбора сообщений">
+                                <TextBlock Text="☑" FontSize="14" Foreground="{StaticResource TextSecBrush}"/>
+                            </Button>
+                            <Button Style="{StaticResource IconButton}"
+                                    Command="{Binding CloseContactCommand}"
+                                    Width="36" Height="36" Padding="0"
+                                    ToolTip="Закрыть чат (ESC)">
+                                <TextBlock Text="✕" FontSize="13" Foreground="{StaticResource TextSecBrush}"/>
+                            </Button>
+                        </StackPanel>
                     </Grid>
                 </Border>
 
@@ -421,110 +453,264 @@
                     <ItemsControl ItemsSource="{Binding CurrentMessages}" x:Name="MsgList">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
-                                <Grid Margin="0,4">
+                                <!-- Outer wrapper handles selection highlight -->
+                                <Border Background="{Binding IsSelected, Converter={StaticResource SelectionBrush}}"
+                                        CornerRadius="6" Margin="0,2">
+                                  <Grid Margin="0,4">
+                                    <!-- Selection checkbox (visible in selection mode) -->
+                                    <CheckBox IsChecked="{Binding IsSelected}"
+                                              HorizontalAlignment="{Binding IsSentByMe, Converter={StaticResource MsgAlign}, ConverterParameter=HorizontalAlignment}"
+                                              VerticalAlignment="Top" Margin="4,0"
+                                              Visibility="{Binding DataContext.IsSelectionMode, RelativeSource={RelativeSource AncestorType=ItemsControl}, Converter={StaticResource BoolToVis}}"
+                                              Command="{Binding DataContext.ToggleMessageSelectCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                              CommandParameter="{Binding}"/>
 
-                                    <!-- ── TEXT (markdown) ── -->
-                                    <Border Visibility="{Binding IsText, Converter={StaticResource BoolToVis}}"
-                                            HorizontalAlignment="{Binding IsSentByMe, Converter={StaticResource MsgAlign}, ConverterParameter=HorizontalAlignment}"
-                                            Background="{Binding IsSentByMe, Converter={StaticResource BubbleColor}}"
-                                            CornerRadius="18" Padding="14,10" MaxWidth="480">
-                                        <StackPanel>
-                                            <TextBlock TextWrapping="Wrap" FontSize="14" LineHeight="22"
-                                                       Foreground="{Binding IsSentByMe, Converter={StaticResource BubbleTextColor}}"
-                                                       md:MarkdownText.Text="{Binding Content}"/>
-                                            <TextBlock Text="{Binding TimeFormatted}" FontSize="10"
-                                                       Foreground="{Binding IsSentByMe, Converter={StaticResource BubbleTextColor}}"
-                                                       Opacity="0.5" HorizontalAlignment="Right" Margin="0,4,0,0"/>
-                                        </StackPanel>
-                                    </Border>
+                                    <StackPanel HorizontalAlignment="{Binding IsSentByMe, Converter={StaticResource MsgAlign}, ConverterParameter=HorizontalAlignment}"
+                                                MaxWidth="490">
 
-                                    <!-- ── VOICE ── -->
-                                    <Border Visibility="{Binding IsVoice, Converter={StaticResource BoolToVis}}"
-                                            HorizontalAlignment="{Binding IsSentByMe, Converter={StaticResource MsgAlign}, ConverterParameter=HorizontalAlignment}"
-                                            Background="{Binding IsSentByMe, Converter={StaticResource BubbleColor}}"
-                                            CornerRadius="18" Padding="12,10" MinWidth="200">
-                                        <StackPanel Orientation="Horizontal">
-                                            <Button Style="{StaticResource IconButton}"
-                                                    Command="{Binding DataContext.PlayVoiceCommand,
-                                                              RelativeSource={RelativeSource AncestorType=ItemsControl}}"
-                                                    CommandParameter="{Binding}"
-                                                    Width="38" Height="38" Padding="0"
-                                                    Background="{StaticResource Surface3Brush}">
-                                                <TextBlock Text="{Binding PlayButtonLabel}" FontSize="16"
-                                                           Foreground="{Binding IsSentByMe, Converter={StaticResource BubbleTextColor}}"/>
-                                            </Button>
-                                            <StackPanel Margin="10,0,0,0" VerticalAlignment="Center">
-                                                <TextBlock Text="Голосовое сообщение"
-                                                           Foreground="{Binding IsSentByMe, Converter={StaticResource BubbleTextColor}}"
-                                                           FontSize="13" FontWeight="Medium"/>
-                                                <TextBlock Text="{Binding TimeFormatted}" FontSize="10"
-                                                           Foreground="{Binding IsSentByMe, Converter={StaticResource BubbleTextColor}}"
-                                                           Opacity="0.5"/>
-                                            </StackPanel>
-                                        </StackPanel>
-                                    </Border>
+                                      <!-- ── TEXT (markdown) ── -->
+                                      <Border Visibility="{Binding IsText, Converter={StaticResource BoolToVis}}"
+                                              Background="{Binding IsSentByMe, Converter={StaticResource BubbleColor}}"
+                                              CornerRadius="18" Padding="14,10"
+                                              Tag="{Binding DataContext, ElementName=MsgList}">
+                                          <StackPanel>
+                                              <!-- Error indicator -->
+                                              <TextBlock Text="⚠️ Ошибка отправки"
+                                                         Foreground="#FF6666" FontSize="10"
+                                                         Visibility="{Binding HasSendError, Converter={StaticResource BoolToVis}}"
+                                                         Margin="0,0,0,2"/>
+                                              <!-- Edited indicator -->
+                                              <TextBlock Text="✏️ изменено"
+                                                         Foreground="#AAAAAA" FontSize="10"
+                                                         Visibility="{Binding IsEdited, Converter={StaticResource BoolToVis}}"
+                                                         Margin="0,0,0,2"/>
+                                              <TextBlock TextWrapping="Wrap" FontSize="14" LineHeight="22"
+                                                         Foreground="{Binding IsSentByMe, Converter={StaticResource BubbleTextColor}}"
+                                                         md:MarkdownText.Text="{Binding Content}"/>
+                                              <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,4,0,0">
+                                                  <TextBlock Text="{Binding TimeFormatted}" FontSize="10"
+                                                             Foreground="{Binding IsSentByMe, Converter={StaticResource BubbleTextColor}}"
+                                                             Opacity="0.5" Margin="0,0,6,0"/>
+                                                  <!-- Delivery glyph (only on sent) -->
+                                                  <TextBlock Text="{Binding StatusGlyph}" FontSize="10"
+                                                             Foreground="{Binding StatusGlyph, Converter={StaticResource StatusGlyphColor}}"
+                                                             Visibility="{Binding IsSentByMe, Converter={StaticResource BoolToVis}}"/>
+                                              </StackPanel>
+                                          </StackPanel>
+                                          <Border.ContextMenu>
+                                              <ContextMenu>
+                                                  <MenuItem Header="✏️ Редактировать"
+                                                            Command="{Binding PlacementTarget.Tag.EditMessageCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                                            CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
+                                                  <MenuItem Header="🗑 Удалить"
+                                                            Command="{Binding PlacementTarget.Tag.DeleteMessageCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                                            CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
+                                                  <Separator/>
+                                                  <MenuItem Header="Реакции 👍 ❤️ 😂 🔥" IsEnabled="False" FontWeight="SemiBold"/>
+                                                  <MenuItem Header="👍 Мне нравится">
+                                                      <MenuItem.CommandParameter>
+                                                          <MultiBinding Converter="{StaticResource ObjArray}">
+                                                              <Binding Path="PlacementTarget.DataContext" RelativeSource="{RelativeSource AncestorType=ContextMenu}"/>
+                                                              <Binding Source="👍"/>
+                                                          </MultiBinding>
+                                                      </MenuItem.CommandParameter>
+                                                      <MenuItem.Command>
+                                                          <Binding Path="PlacementTarget.Tag.AddReactionCommand" RelativeSource="{RelativeSource AncestorType=ContextMenu}"/>
+                                                      </MenuItem.Command>
+                                                  </MenuItem>
+                                                  <MenuItem Header="❤️ Люблю">
+                                                      <MenuItem.CommandParameter>
+                                                          <MultiBinding Converter="{StaticResource ObjArray}">
+                                                              <Binding Path="PlacementTarget.DataContext" RelativeSource="{RelativeSource AncestorType=ContextMenu}"/>
+                                                              <Binding Source="❤️"/>
+                                                          </MultiBinding>
+                                                      </MenuItem.CommandParameter>
+                                                      <MenuItem.Command>
+                                                          <Binding Path="PlacementTarget.Tag.AddReactionCommand" RelativeSource="{RelativeSource AncestorType=ContextMenu}"/>
+                                                      </MenuItem.Command>
+                                                  </MenuItem>
+                                                  <MenuItem Header="😂 Смешно">
+                                                      <MenuItem.CommandParameter>
+                                                          <MultiBinding Converter="{StaticResource ObjArray}">
+                                                              <Binding Path="PlacementTarget.DataContext" RelativeSource="{RelativeSource AncestorType=ContextMenu}"/>
+                                                              <Binding Source="😂"/>
+                                                          </MultiBinding>
+                                                      </MenuItem.CommandParameter>
+                                                      <MenuItem.Command>
+                                                          <Binding Path="PlacementTarget.Tag.AddReactionCommand" RelativeSource="{RelativeSource AncestorType=ContextMenu}"/>
+                                                      </MenuItem.Command>
+                                                  </MenuItem>
+                                                  <MenuItem Header="🔥 Огонь">
+                                                      <MenuItem.CommandParameter>
+                                                          <MultiBinding Converter="{StaticResource ObjArray}">
+                                                              <Binding Path="PlacementTarget.DataContext" RelativeSource="{RelativeSource AncestorType=ContextMenu}"/>
+                                                              <Binding Source="🔥"/>
+                                                          </MultiBinding>
+                                                      </MenuItem.CommandParameter>
+                                                      <MenuItem.Command>
+                                                          <Binding Path="PlacementTarget.Tag.AddReactionCommand" RelativeSource="{RelativeSource AncestorType=ContextMenu}"/>
+                                                      </MenuItem.Command>
+                                                  </MenuItem>
+                                              </ContextMenu>
+                                          </Border.ContextMenu>
+                                      </Border>
 
-                                    <!-- ── IMAGE ── -->
-                                    <Border Visibility="{Binding IsImage, Converter={StaticResource BoolToVis}}"
-                                            HorizontalAlignment="{Binding IsSentByMe, Converter={StaticResource MsgAlign}, ConverterParameter=HorizontalAlignment}"
-                                            Background="{Binding IsSentByMe, Converter={StaticResource BubbleColor}}"
-                                            CornerRadius="14" Padding="6" MaxWidth="380">
-                                        <StackPanel>
-                                            <Border CornerRadius="10" ClipToBounds="True">
-                                                <Image Source="{Binding ImageBytes, Converter={StaticResource BytesToImage}}"
-                                                       MaxHeight="300" Stretch="Uniform"/>
-                                            </Border>
-                                            <TextBlock Text="{Binding TimeFormatted}" FontSize="10"
-                                                       Foreground="{Binding IsSentByMe, Converter={StaticResource BubbleTextColor}}"
-                                                       Opacity="0.5" HorizontalAlignment="Right" Margin="4,4,4,0"/>
-                                        </StackPanel>
-                                    </Border>
+                                      <!-- ── VOICE ── -->
+                                      <Border Visibility="{Binding IsVoice, Converter={StaticResource BoolToVis}}"
+                                              Background="{Binding IsSentByMe, Converter={StaticResource BubbleColor}}"
+                                              CornerRadius="18" Padding="12,10" MinWidth="200">
+                                          <StackPanel Orientation="Horizontal">
+                                              <Button Style="{StaticResource IconButton}"
+                                                      Command="{Binding DataContext.PlayVoiceCommand,
+                                                                RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                      CommandParameter="{Binding}"
+                                                      Width="38" Height="38" Padding="0"
+                                                      Background="{StaticResource Surface3Brush}">
+                                                  <TextBlock Text="{Binding PlayButtonLabel}" FontSize="16"
+                                                             Foreground="{Binding IsSentByMe, Converter={StaticResource BubbleTextColor}}"/>
+                                              </Button>
+                                              <StackPanel Margin="10,0,0,0" VerticalAlignment="Center">
+                                                  <TextBlock Text="Голосовое сообщение"
+                                                             Foreground="{Binding IsSentByMe, Converter={StaticResource BubbleTextColor}}"
+                                                             FontSize="13" FontWeight="Medium"/>
+                                                  <StackPanel Orientation="Horizontal">
+                                                      <TextBlock Text="{Binding TimeFormatted}" FontSize="10"
+                                                                 Foreground="{Binding IsSentByMe, Converter={StaticResource BubbleTextColor}}"
+                                                                 Opacity="0.5" Margin="0,0,6,0"/>
+                                                      <TextBlock Text="{Binding StatusGlyph}" FontSize="10"
+                                                                 Foreground="{Binding StatusGlyph, Converter={StaticResource StatusGlyphColor}}"
+                                                                 Visibility="{Binding IsSentByMe, Converter={StaticResource BoolToVis}}"/>
+                                                  </StackPanel>
+                                              </StackPanel>
+                                          </StackPanel>
+                                      </Border>
 
-                                    <!-- ── FILE ── -->
-                                    <Border Visibility="{Binding IsFile, Converter={StaticResource BoolToVis}}"
-                                            HorizontalAlignment="{Binding IsSentByMe, Converter={StaticResource MsgAlign}, ConverterParameter=HorizontalAlignment}"
-                                            Background="{Binding IsSentByMe, Converter={StaticResource BubbleColor}}"
-                                            CornerRadius="14" Padding="14,10" MinWidth="200" MaxWidth="340">
-                                        <StackPanel>
-                                            <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
-                                                <TextBlock Text="📁" FontSize="22" Margin="0,0,10,0" VerticalAlignment="Center"/>
-                                                <StackPanel VerticalAlignment="Center">
-                                                    <TextBlock Text="{Binding FileName}" FontSize="13" FontWeight="Medium"
-                                                               Foreground="{Binding IsSentByMe, Converter={StaticResource BubbleTextColor}}"
-                                                               TextTrimming="CharacterEllipsis" MaxWidth="200"/>
-                                                    <TextBlock Text="{Binding TimeFormatted}" FontSize="10"
-                                                               Foreground="{Binding IsSentByMe, Converter={StaticResource BubbleTextColor}}"
-                                                               Opacity="0.5"/>
-                                                </StackPanel>
-                                            </StackPanel>
-                                            <!-- Save button (only for received files) -->
-                                            <Button Style="{StaticResource IconButton}"
-                                                    Visibility="{Binding IsSentByMe, Converter={StaticResource BoolToVis}, ConverterParameter=invert}"
-                                                    Command="{Binding DataContext.SaveFileCommand,
-                                                              RelativeSource={RelativeSource AncestorType=ItemsControl}}"
-                                                    CommandParameter="{Binding}"
-                                                    Background="{StaticResource Surface3Brush}"
-                                                    Padding="8,4" FontSize="12" HorizontalAlignment="Left">
-                                                <TextBlock Text="💾  Сохранить"/>
-                                            </Button>
-                                            <!-- Text preview (first 40 lines, only for text files) -->
-                                            <Border Visibility="{Binding HasFilePreview, Converter={StaticResource BoolToVis}}"
-                                                    Background="{StaticResource Surface3Brush}"
-                                                    CornerRadius="6" Padding="8,6" Margin="0,6,0,0" MaxWidth="400">
-                                                <StackPanel>
-                                                    <TextBlock Text="ПРЕДПРОСМОТР (первые 40 строк)"
-                                                               FontSize="9" FontWeight="SemiBold"
-                                                               Foreground="{StaticResource TextSecBrush}" Margin="0,0,0,4"/>
-                                                    <TextBlock Text="{Binding FilePreview}"
-                                                               FontSize="11" FontFamily="Consolas,Courier New"
-                                                               Foreground="{StaticResource TextSecBrush}"
-                                                               TextWrapping="Wrap" MaxWidth="380"/>
-                                                </StackPanel>
-                                            </Border>
-                                        </StackPanel>
-                                    </Border>
+                                      <!-- ── IMAGE ── -->
+                                      <Border Visibility="{Binding IsImage, Converter={StaticResource BoolToVis}}"
+                                              Background="{Binding IsSentByMe, Converter={StaticResource BubbleColor}}"
+                                              CornerRadius="14" Padding="6" MaxWidth="380">
+                                          <StackPanel>
+                                              <Border CornerRadius="10" ClipToBounds="True">
+                                                  <Image Source="{Binding ImageBytes, Converter={StaticResource BytesToImage}}"
+                                                         MaxHeight="300" Stretch="Uniform"/>
+                                              </Border>
+                                              <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="4,4,4,0">
+                                                  <TextBlock Text="{Binding TimeFormatted}" FontSize="10"
+                                                             Foreground="{Binding IsSentByMe, Converter={StaticResource BubbleTextColor}}"
+                                                             Opacity="0.5" Margin="0,0,6,0"/>
+                                                  <TextBlock Text="{Binding StatusGlyph}" FontSize="10"
+                                                             Foreground="{Binding StatusGlyph, Converter={StaticResource StatusGlyphColor}}"
+                                                             Visibility="{Binding IsSentByMe, Converter={StaticResource BoolToVis}}"/>
+                                              </StackPanel>
+                                          </StackPanel>
+                                      </Border>
 
-                                </Grid>
+                                      <!-- ── FILE / VIDEO ── -->
+                                      <Border Visibility="{Binding IsFile, Converter={StaticResource BoolToVis}}"
+                                              Background="{Binding IsSentByMe, Converter={StaticResource BubbleColor}}"
+                                              CornerRadius="14" Padding="14,10" MinWidth="200" MaxWidth="340">
+                                          <StackPanel>
+                                              <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                                                  <TextBlock Text="📁" FontSize="22" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                                                  <StackPanel VerticalAlignment="Center">
+                                                      <TextBlock Text="{Binding FileName}" FontSize="13" FontWeight="Medium"
+                                                                 Foreground="{Binding IsSentByMe, Converter={StaticResource BubbleTextColor}}"
+                                                                 TextTrimming="CharacterEllipsis" MaxWidth="200"/>
+                                                      <StackPanel Orientation="Horizontal">
+                                                          <TextBlock Text="{Binding TimeFormatted}" FontSize="10"
+                                                                     Foreground="{Binding IsSentByMe, Converter={StaticResource BubbleTextColor}}"
+                                                                     Opacity="0.5" Margin="0,0,6,0"/>
+                                                          <TextBlock Text="{Binding StatusGlyph}" FontSize="10"
+                                                                     Foreground="{Binding StatusGlyph, Converter={StaticResource StatusGlyphColor}}"
+                                                                     Visibility="{Binding IsSentByMe, Converter={StaticResource BoolToVis}}"/>
+                                                      </StackPanel>
+                                                  </StackPanel>
+                                              </StackPanel>
+                                              <Button Style="{StaticResource IconButton}"
+                                                      Visibility="{Binding IsSentByMe, Converter={StaticResource BoolToVis}, ConverterParameter=invert}"
+                                                      Command="{Binding DataContext.SaveFileCommand,
+                                                                RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                      CommandParameter="{Binding}"
+                                                      Background="{StaticResource Surface3Brush}"
+                                                      Padding="8,4" FontSize="12" HorizontalAlignment="Left">
+                                                  <TextBlock Text="💾  Сохранить"/>
+                                              </Button>
+                                              <Border Visibility="{Binding HasFilePreview, Converter={StaticResource BoolToVis}}"
+                                                      Background="{StaticResource Surface3Brush}"
+                                                      CornerRadius="6" Padding="8,6" Margin="0,6,0,0" MaxWidth="400">
+                                                  <StackPanel>
+                                                      <TextBlock Text="ПРЕДПРОСМОТР (первые 40 строк)"
+                                                                 FontSize="9" FontWeight="SemiBold"
+                                                                 Foreground="{StaticResource TextSecBrush}" Margin="0,0,0,4"/>
+                                                      <TextBlock Text="{Binding FilePreview}"
+                                                                 FontSize="11" FontFamily="Consolas,Courier New"
+                                                                 Foreground="{StaticResource TextSecBrush}"
+                                                                 TextWrapping="Wrap" MaxWidth="380"/>
+                                                  </StackPanel>
+                                              </Border>
+                                          </StackPanel>
+                                      </Border>
+
+                                      <!-- ── VIDEO ── -->
+                                      <Border Visibility="{Binding IsVideo, Converter={StaticResource BoolToVis}}"
+                                              Background="{Binding IsSentByMe, Converter={StaticResource BubbleColor}}"
+                                              CornerRadius="14" Padding="14,10" MinWidth="200" MaxWidth="340">
+                                          <StackPanel>
+                                              <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                                                  <TextBlock Text="🎬" FontSize="22" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                                                  <StackPanel VerticalAlignment="Center">
+                                                      <TextBlock Text="{Binding FileName}" FontSize="13" FontWeight="Medium"
+                                                                 Foreground="{Binding IsSentByMe, Converter={StaticResource BubbleTextColor}}"
+                                                                 TextTrimming="CharacterEllipsis" MaxWidth="200"/>
+                                                      <StackPanel Orientation="Horizontal">
+                                                          <TextBlock Text="{Binding TimeFormatted}" FontSize="10"
+                                                                     Foreground="{Binding IsSentByMe, Converter={StaticResource BubbleTextColor}}"
+                                                                     Opacity="0.5" Margin="0,0,6,0"/>
+                                                          <TextBlock Text="{Binding StatusGlyph}" FontSize="10"
+                                                                     Foreground="{Binding StatusGlyph, Converter={StaticResource StatusGlyphColor}}"
+                                                                     Visibility="{Binding IsSentByMe, Converter={StaticResource BoolToVis}}"/>
+                                                      </StackPanel>
+                                                  </StackPanel>
+                                              </StackPanel>
+                                              <Button Style="{StaticResource IconButton}"
+                                                      Visibility="{Binding IsSentByMe, Converter={StaticResource BoolToVis}, ConverterParameter=invert}"
+                                                      Command="{Binding DataContext.SaveFileCommand,
+                                                                RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                      CommandParameter="{Binding}"
+                                                      Background="{StaticResource Surface3Brush}"
+                                                      Padding="8,4" FontSize="12" HorizontalAlignment="Left">
+                                                  <TextBlock Text="💾  Сохранить видео"/>
+                                              </Button>
+                                          </StackPanel>
+                                      </Border>
+
+                                      <!-- ── Reactions row ── -->
+                                      <ItemsControl ItemsSource="{Binding Reactions}"
+                                                    Visibility="{Binding HasReactions, Converter={StaticResource BoolToVis}}"
+                                                    HorizontalAlignment="Left" Margin="4,2,0,0">
+                                          <ItemsControl.ItemsPanel>
+                                              <ItemsPanelTemplate>
+                                                  <WrapPanel Orientation="Horizontal"/>
+                                              </ItemsPanelTemplate>
+                                          </ItemsControl.ItemsPanel>
+                                          <ItemsControl.ItemTemplate>
+                                              <DataTemplate>
+                                                  <Border Background="{StaticResource Surface3Brush}"
+                                                          CornerRadius="10" Padding="6,2" Margin="2,1">
+                                                      <StackPanel Orientation="Horizontal">
+                                                          <TextBlock Text="{Binding Emoji}" FontSize="14"/>
+                                                          <TextBlock Text="{Binding Count}" FontSize="12"
+                                                                     Margin="3,0,0,0" VerticalAlignment="Center"
+                                                                     Foreground="{StaticResource TextSecBrush}"/>
+                                                      </StackPanel>
+                                                  </Border>
+                                              </DataTemplate>
+                                          </ItemsControl.ItemTemplate>
+                                      </ItemsControl>
+
+                                    </StackPanel>
+                                  </Grid>
+                                </Border>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
@@ -626,65 +812,114 @@
                             <TextBlock Text="😊" FontSize="17"/>
                         </Button>
 
-                        <!-- Attach image -->
+                        <!-- Unified attach button -->
                         <Button Grid.Column="1" Style="{StaticResource IconButton}"
-                                Command="{Binding SendImageCommand}"
+                                Command="{Binding ToggleAttachMenuCommand}"
                                 Width="38" Height="38" Padding="0"
-                                ToolTip="Отправить изображение" Margin="0,0,4,0">
-                            <TextBlock Text="🖼" FontSize="17"/>
-                        </Button>
-
-                        <!-- Attach file -->
-                        <Button Grid.Column="2" Style="{StaticResource IconButton}"
-                                Command="{Binding SendFileCommand}"
-                                Width="38" Height="38" Padding="0"
-                                ToolTip="Отправить файл" Margin="0,0,4,0">
+                                ToolTip="Прикрепить файл" Margin="0,0,4,0">
                             <TextBlock Text="📎" FontSize="17"/>
                         </Button>
 
-                        <!-- Voice file -->
-                        <Button Grid.Column="3" Style="{StaticResource IconButton}"
-                                Command="{Binding SendVoiceFileCommand}"
-                                Width="38" Height="38" Padding="0"
-                                ToolTip="Отправить аудиофайл" Margin="0,0,8,0">
-                            <TextBlock Text="🎵" FontSize="17"/>
+                        <!-- Voice record / stop (now col 2) -->
+                        <Button Grid.Column="2" Style="{StaticResource IconButton}"
+                                Command="{Binding StartVoiceCommand}"
+                                Margin="0,0,8,0" Width="38" Height="38" Padding="0"
+                                Visibility="{Binding IsRecording, Converter={StaticResource BoolToVis}, ConverterParameter=invert}"
+                                ToolTip="Записать голосовое">
+                            <TextBlock Text="🎙" FontSize="18"/>
+                        </Button>
+                        <Button Grid.Column="2" Style="{StaticResource IconButton}"
+                                Command="{Binding StopVoiceCommand}"
+                                Margin="0,0,8,0" Width="38" Height="38" Padding="0"
+                                Visibility="{Binding IsRecording, Converter={StaticResource BoolToVis}}"
+                                Background="#CC0000">
+                            <TextBlock Text="⏹" FontSize="18"/>
                         </Button>
 
-                        <!-- Text input (supports markdown, Shift+Enter = newline) -->
+                        <!-- Text input (supports markdown, Enter=send, Shift+Enter=newline) -->
                         <TextBox Grid.Column="4" Style="{StaticResource ModernTextBox}"
                                  Text="{Binding MessageInput, UpdateSourceTrigger=PropertyChanged}"
                                  Padding="14,10" FontSize="14"
                                  KeyDown="MessageInput_KeyDown"
-                                 AcceptsReturn="False"
-                                 ToolTip="Markdown: **жирный** *курсив* `код` [ссылка](url) ~~зачёркнутый~~"/>
+                                 AcceptsReturn="True"
+                                 TextWrapping="Wrap"
+                                 MaxHeight="140"
+                                 VerticalScrollBarVisibility="Auto"
+                                 ToolTip="Markdown: **жирный** *курсив* `код` [ссылка](url) ~~зачёркнутый~~&#xa;Enter — отправить  Shift+Enter — новая строка"/>
 
-                        <!-- Voice record / stop -->
-                        <Button Grid.Column="5" Style="{StaticResource IconButton}"
-                                Command="{Binding StartVoiceCommand}"
-                                Margin="8,0,0,0" Width="42" Height="42" Padding="0"
-                                Visibility="{Binding IsRecording, Converter={StaticResource BoolToVis}, ConverterParameter=invert}"
-                                ToolTip="Записать голосовое">
-                            <TextBlock Text="🎙" FontSize="20"/>
-                        </Button>
-                        <Button Grid.Column="5" Style="{StaticResource IconButton}"
-                                Command="{Binding StopVoiceCommand}"
-                                Margin="8,0,0,0" Width="42" Height="42" Padding="0"
-                                Visibility="{Binding IsRecording, Converter={StaticResource BoolToVis}}"
-                                Background="#CC0000">
-                            <TextBlock Text="⏹" FontSize="20"/>
-                        </Button>
-
-                        <!-- Send -->
+                        <!-- Send button (normal mode) -->
                         <Button Grid.Column="6" Style="{StaticResource IconButton}"
                                 Command="{Binding SendTextCommand}"
-                                Margin="4,0,0,0" Width="42" Height="42" Padding="0">
+                                Margin="4,0,0,0" Width="42" Height="42" Padding="0"
+                                Visibility="{Binding IsEditing, Converter={StaticResource BoolToVis}, ConverterParameter=invert}">
                             <TextBlock Text="➤" FontSize="20" Foreground="White"/>
                         </Button>
+                        <!-- Confirm edit button -->
+                        <Button Grid.Column="6" Style="{StaticResource IconButton}"
+                                Command="{Binding ConfirmEditCommand}"
+                                Margin="4,0,0,0" Width="42" Height="42" Padding="0"
+                                Background="#003366"
+                                Visibility="{Binding IsEditing, Converter={StaticResource BoolToVis}}">
+                            <TextBlock Text="✓" FontSize="20" Foreground="White"/>
+                        </Button>
                     </Grid>
+
+                    <!-- Editing indicator -->
+                    <Border Background="#181840" CornerRadius="6" Padding="10,4" Margin="0,0,0,2"
+                            Visibility="{Binding IsEditing, Converter={StaticResource BoolToVis}}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="✏️ Редактирование  " FontSize="11" Foreground="#8888FF"/>
+                            <Button Style="{StaticResource IconButton}" Command="{Binding CancelEditCommand}"
+                                    Padding="4,2" FontSize="11">
+                                <TextBlock Text="✕ Отмена" Foreground="#FF6666"/>
+                            </Button>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Attach popup menu -->
+                    <Border Background="{StaticResource Surface3Brush}" CornerRadius="10"
+                            Padding="6" Margin="0,0,0,4"
+                            Visibility="{Binding ShowAttachMenu, Converter={StaticResource BoolToVis}}">
+                        <StackPanel Orientation="Horizontal">
+                            <Button Style="{StaticResource IconButton}" Command="{Binding SendImageCommand}"
+                                    Padding="8,6" Margin="2,0" ToolTip="Изображение">
+                                <TextBlock Text="🖼 Фото"/>
+                            </Button>
+                            <Button Style="{StaticResource IconButton}" Command="{Binding SendFileCommand}"
+                                    Padding="8,6" Margin="2,0" ToolTip="Файл">
+                                <TextBlock Text="📄 Файл"/>
+                            </Button>
+                            <Button Style="{StaticResource IconButton}" Command="{Binding SendVideoCommand}"
+                                    Padding="8,6" Margin="2,0" ToolTip="Видео">
+                                <TextBlock Text="🎬 Видео"/>
+                            </Button>
+                            <Button Style="{StaticResource IconButton}" Command="{Binding SendVoiceFileCommand}"
+                                    Padding="8,6" Margin="2,0" ToolTip="Аудиофайл">
+                                <TextBlock Text="🎵 Аудио"/>
+                            </Button>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Selection toolbar -->
+                    <Border Background="{StaticResource Surface3Brush}" CornerRadius="8" Padding="8,4" Margin="0,0,0,4"
+                            Visibility="{Binding IsSelectionMode, Converter={StaticResource BoolToVis}}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="Выбрать сообщения:" FontSize="12" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                            <Button Style="{StaticResource IconButton}" Command="{Binding DeleteSelectedCommand}"
+                                    Padding="8,4" Foreground="#FF4444">
+                                <TextBlock Text="🗑 Удалить выбранные"/>
+                            </Button>
+                            <Button Style="{StaticResource IconButton}" Command="{Binding ToggleSelectModeCommand}"
+                                    Padding="8,4" Margin="4,0,0,0">
+                                <TextBlock Text="✕ Отмена"/>
+                            </Button>
+                        </StackPanel>
+                    </Border>
+
                     <!-- Character counter -->
                     <TextBlock Text="{Binding MessageLengthInfo}"
                                FontSize="10" Foreground="{StaticResource TextSecBrush}"
-                               HorizontalAlignment="Right" Margin="0,2,4,4"/>
+                               HorizontalAlignment="Right" Margin="0,2,4,2"/>
                     </StackPanel>
                 </Border>
             </Grid>
@@ -719,12 +954,30 @@
                                    FontSize="16" FontWeight="SemiBold"
                                    HorizontalAlignment="Center" TextWrapping="Wrap"
                                    TextAlignment="Center" Margin="0,0,0,6"/>
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,20">
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,8">
                             <Ellipse Width="8" Height="8" VerticalAlignment="Center" Margin="0,0,6,0"
                                      Fill="{Binding SelectedContact.IsOnline, Converter={StaticResource BoolToColor}}"/>
                             <TextBlock Text="{Binding SelectedContact.StatusText}"
                                        FontSize="12" Foreground="{StaticResource TextSecBrush}"/>
                         </StackPanel>
+                        <!-- Bio text -->
+                        <Border Background="{StaticResource Surface3Brush}" CornerRadius="8" Padding="10,8" Margin="0,0,0,16"
+                                Visibility="{Binding SelectedContact.HasBio, Converter={StaticResource BoolToVis}}">
+                            <TextBlock Text="{Binding SelectedContact.Bio}"
+                                       FontSize="12" TextWrapping="Wrap"
+                                       Foreground="{StaticResource TextSecBrush}"
+                                       FontStyle="Italic"/>
+                        </Border>
+
+                        <!-- Unread badge -->
+                        <Border Background="#CC2244" CornerRadius="10" Padding="10,4" Margin="0,0,0,10"
+                                HorizontalAlignment="Center"
+                                Visibility="{Binding SelectedContact.HasUnread, Converter={StaticResource BoolToVis}}">
+                            <TextBlock FontSize="12" Foreground="White">
+                                <Run Text="{Binding SelectedContact.UnreadCount}"/>
+                                <Run Text=" непрочитанных"/>
+                            </TextBlock>
+                        </Border>
 
                         <Rectangle Height="1" Fill="{StaticResource BorderBrush2}" Margin="0,0,0,20"/>
                         <TextBlock Text="И Н Ф О Р М А Ц И Я" FontSize="10" FontWeight="SemiBold"

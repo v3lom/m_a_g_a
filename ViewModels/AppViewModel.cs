@@ -5,6 +5,7 @@ using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
 using M_A_G_A.Audio;
@@ -51,6 +52,10 @@ namespace M_A_G_A.ViewModels
         private bool   _isLightTheme;
         private byte[] _globalChatBackground;
         private string _selectedFolderFilter;  // null = show all
+        private string _myBio;
+        private bool   _isSelectionMode;
+        private bool   _showAttachMenu;
+        private ChatMessage _editingMessage;
 
         // ─── Info exposed for the UI ─────────────────────────────────
         public string MyMacAddress  => NetworkHelper.GetMacAddress();
@@ -166,6 +171,40 @@ namespace M_A_G_A.ViewModels
         }
         public bool HasPassword => !string.IsNullOrEmpty(_settings?.PasswordHash);
 
+        public string MyBio
+        {
+            get => _myBio;
+            set
+            {
+                var trimmed = value?.Length > User.MaxBioLength ? value.Substring(0, User.MaxBioLength) : value;
+                _myBio = trimmed;
+                OnPropChanged();
+            }
+        }
+
+        public bool IsSelectionMode
+        {
+            get => _isSelectionMode;
+            set { _isSelectionMode = value; OnPropChanged(); if (!value) ClearSelection(); }
+        }
+
+        public bool ShowAttachMenu
+        {
+            get => _showAttachMenu;
+            set { _showAttachMenu = value; OnPropChanged(); }
+        }
+
+        public ChatMessage EditingMessage
+        {
+            get => _editingMessage;
+            set { _editingMessage = value; OnPropChanged(); OnPropChanged(nameof(IsEditing)); }
+        }
+
+        public bool IsEditing => _editingMessage != null;
+
+        /// <summary>Total unread messages across all contacts.</summary>
+        public int TotalUnread => Contacts.Sum(c => c.UnreadCount);
+
         public User SelectedContact
         {
             get => _selectedContact;
@@ -177,6 +216,10 @@ namespace M_A_G_A.ViewModels
                 OnPropChanged();
                 OnPropChanged(nameof(HasSelectedContact));
                 OnPropChanged(nameof(ActiveChatBackground));
+                if (value != null) value.UnreadCount = 0;
+                IsSelectionMode  = false;
+                EditingMessage   = null;
+                ShowAttachMenu   = false;
                 LoadMessages(value?.Id);
             }
         }
@@ -219,6 +262,20 @@ namespace M_A_G_A.ViewModels
         public ICommand SetPasswordCommand              { get; }
         public ICommand ClearPasswordCommand            { get; }
         public ICommand ToggleThemeCommand              { get; }
+        // ─── Message management commands ─────────────────────────────
+        public ICommand EditMessageCommand              { get; }
+        public ICommand ConfirmEditCommand              { get; }
+        public ICommand CancelEditCommand               { get; }
+        public ICommand DeleteMessageCommand            { get; }
+        public ICommand AddReactionCommand              { get; }
+        public ICommand ToggleSelectModeCommand         { get; }
+        public ICommand ToggleMessageSelectCommand      { get; }
+        public ICommand DeleteSelectedCommand           { get; }
+        // ─── Attachment menu ─────────────────────────────────────────
+        public ICommand ToggleAttachMenuCommand         { get; }
+        public ICommand SendVideoCommand                { get; }
+        // ─── Profile broadcast ───────────────────────────────────────
+        public ICommand BroadcastProfileCommand         { get; }
 
         // ─── Events ────────────────────────────────────────────────
         /// <summary>Raised when an incoming message deserves a desktop notification.</summary>
@@ -265,6 +322,18 @@ namespace M_A_G_A.ViewModels
             ClearPasswordCommand         = new RelayCommand(_ => ClearPassword(), _ => HasPassword);
             ToggleThemeCommand           = new RelayCommand(_ => IsLightTheme = !IsLightTheme);
 
+            EditMessageCommand           = new RelayCommand(msg => StartEdit(msg as ChatMessage), msg => msg is ChatMessage m && m.IsSentByMe);
+            ConfirmEditCommand           = new RelayCommand(_ => ConfirmEdit(),     _ => IsEditing && !string.IsNullOrWhiteSpace(MessageInput));
+            CancelEditCommand            = new RelayCommand(_ => CancelEdit(),      _ => IsEditing);
+            DeleteMessageCommand         = new RelayCommand(msg => DeleteMessage(msg as ChatMessage), msg => msg is ChatMessage);
+            AddReactionCommand           = new RelayCommand(p => DoReact(p as object[]), _ => SelectedContact != null);
+            ToggleSelectModeCommand      = new RelayCommand(_ => IsSelectionMode = !IsSelectionMode);
+            ToggleMessageSelectCommand   = new RelayCommand(msg => ToggleSelect(msg as ChatMessage));
+            DeleteSelectedCommand        = new RelayCommand(_ => DeleteSelected(), _ => IsSelectionMode);
+            ToggleAttachMenuCommand      = new RelayCommand(_ => ShowAttachMenu = !ShowAttachMenu);
+            SendVideoCommand             = new RelayCommand(_ => SendVideo(),        _ => SelectedContact != null);
+            BroadcastProfileCommand      = new RelayCommand(_ => BroadcastProfile());
+
             _autoStart = AutoStartHelper.IsEnabled();
             LoadSettings();
 
@@ -276,10 +345,12 @@ namespace M_A_G_A.ViewModels
         {
             var cfg = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "MAGA");
             Directory.CreateDirectory(cfg);
-            var namePath  = Path.Combine(cfg, "name.txt");
+            var namePath   = Path.Combine(cfg, "name.txt");
             var avatarPath = Path.Combine(cfg, "avatar.png");
+            var bioPath    = Path.Combine(cfg, "bio.txt");
             if (File.Exists(namePath))   { var n = File.ReadAllText(namePath).Trim(); if (!string.IsNullOrEmpty(n)) _myName = n; }
             if (File.Exists(avatarPath)) _myAvatar = File.ReadAllBytes(avatarPath);
+            if (File.Exists(bioPath))    { var b = File.ReadAllText(bioPath, System.Text.Encoding.UTF8).Trim(); if (!string.IsNullOrEmpty(b)) _myBio = b.Length > User.MaxBioLength ? b.Substring(0, User.MaxBioLength) : b; }
         }
 
         // ─── Settings (uses AppSettingsStore) ──────────────────────
@@ -364,11 +435,13 @@ namespace M_A_G_A.ViewModels
         {
             if (string.IsNullOrWhiteSpace(MyName)) return;
             LoadSavedProfile();
+            AppLogger.Info("App started");
             _server.MessageReceived += OnMessageReceived;
             _server.Start();
             _discovery.PeerDiscovered    += OnPeerDiscovered;
             _discovery.PeerDisconnected  += OnPeerDisconnected;
             _discovery.Start(_myId, _myName, _myAvatar != null ? Convert.ToBase64String(_myAvatar) : "", _server.Port);
+            _discovery.UpdateBio(_myBio);
             if (_stealthMode) _discovery.SetStealth(true);
             IsSetupDone = true;
         }
@@ -393,6 +466,8 @@ namespace M_A_G_A.ViewModels
                 File.WriteAllText(Path.Combine(cfg, "name.txt"), MyName);
             if (MyAvatar != null)
                 File.WriteAllBytes(Path.Combine(cfg, "avatar.png"), MyAvatar);
+            if (!string.IsNullOrWhiteSpace(MyBio))
+                File.WriteAllText(Path.Combine(cfg, "bio.txt"), MyBio, System.Text.Encoding.UTF8);
         }
 
         private void PickAvatar()
@@ -406,6 +481,7 @@ namespace M_A_G_A.ViewModels
             MyAvatar = ResizeImage(File.ReadAllBytes(dlg.FileName));
             SaveProfile();
             _discovery.UpdateAvatar(MyAvatar != null ? Convert.ToBase64String(MyAvatar) : "");
+            BroadcastProfile();
         }
 
         private byte[] ResizeImage(byte[] src)
@@ -453,7 +529,9 @@ namespace M_A_G_A.ViewModels
                         TcpPort     = packet.TcpPort,
                         IsOnline    = true,
                         LastSeen    = DateTime.Now,
-                        AvatarBytes = avatar
+                        AvatarBytes = avatar,
+                        Bio         = string.IsNullOrEmpty(packet.SenderBio) ? null :
+                                      (packet.SenderBio.Length > User.MaxBioLength ? packet.SenderBio.Substring(0, User.MaxBioLength) : packet.SenderBio)
                     };
                     // Restore per-contact background + folder from saved settings
                     RestoreContactSettings(user);
@@ -472,6 +550,8 @@ namespace M_A_G_A.ViewModels
                     // ← ALWAYS update avatar (fix for stale avatars)
                     if (avatar != null)
                         existing.AvatarBytes = avatar;
+                    if (!string.IsNullOrEmpty(packet.SenderBio))
+                        existing.Bio = packet.SenderBio.Length > User.MaxBioLength ? packet.SenderBio.Substring(0, User.MaxBioLength) : packet.SenderBio;
                     ApplySearch();
                 }
             });
@@ -503,6 +583,83 @@ namespace M_A_G_A.ViewModels
         {
             Application.Current.Dispatcher.Invoke(() =>
             {
+                // ── Handle control packets that don't require a visible chat message ─
+                switch (packet.PacketType)
+                {
+                    case "ACK":
+                        // Mark the message as delivered
+                        foreach (var kv in _chatHistory)
+                        {
+                            var m = kv.Value.FirstOrDefault(x => x.Id == packet.MessageId);
+                            if (m != null) { m.IsDelivered = true; return; }
+                        }
+                        return;
+
+                    case "READ":
+                        // Mark message as read
+                        foreach (var kv in _chatHistory)
+                        {
+                            var m = kv.Value.FirstOrDefault(x => x.Id == packet.MessageId);
+                            if (m != null) { m.IsDelivered = true; m.IsRead = true; return; }
+                        }
+                        return;
+
+                    case "EDIT":
+                        foreach (var kv in _chatHistory)
+                        {
+                            var m = kv.Value.FirstOrDefault(x => x.Id == packet.MessageId);
+                            if (m != null)
+                            {
+                                m.Content  = packet.Content;
+                                m.IsEdited = true;
+                                SaveContactHistory(kv.Key);
+                                return;
+                            }
+                        }
+                        return;
+
+                    case "DELETE":
+                        foreach (var kv in _chatHistory)
+                        {
+                            var m = kv.Value.FirstOrDefault(x => x.Id == packet.MessageId);
+                            if (m != null)
+                            {
+                                kv.Value.Remove(m);
+                                if (_selectedContact?.Id == kv.Key)
+                                    CurrentMessages.Remove(m);
+                                SaveContactHistory(kv.Key);
+                                return;
+                            }
+                        }
+                        return;
+
+                    case "REACT":
+                        foreach (var kv in _chatHistory)
+                        {
+                            var m = kv.Value.FirstOrDefault(x => x.Id == packet.MessageId);
+                            if (m != null)
+                            {
+                                m.AddReaction(packet.Content, packet.Extra ?? packet.SenderId);
+                                return;
+                            }
+                        }
+                        return;
+
+                    case "PROFILE":
+                    {
+                        var u = Contacts.FirstOrDefault(c => c.Id == packet.SenderId);
+                        if (u != null)
+                        {
+                            if (!string.IsNullOrEmpty(packet.SenderName)) u.Username = packet.SenderName;
+                            if (!string.IsNullOrEmpty(packet.SenderAvatar))
+                                try { u.AvatarBytes = Convert.FromBase64String(packet.SenderAvatar); } catch { }
+                            if (!string.IsNullOrEmpty(packet.SenderBio))
+                                u.Bio = packet.SenderBio.Length > User.MaxBioLength ? packet.SenderBio.Substring(0, User.MaxBioLength) : packet.SenderBio;
+                        }
+                        return;
+                    }
+                }
+
                 // ── Ensure sender exists in contacts ──────────────────
                 var sender = Contacts.FirstOrDefault(c => c.Id == packet.SenderId);
                 if (sender == null)
@@ -520,9 +677,9 @@ namespace M_A_G_A.ViewModels
                         LastSeen   = DateTime.Now
                     };
                     if (!string.IsNullOrEmpty(packet.SenderAvatar))
-                    {
                         try { sender.AvatarBytes = Convert.FromBase64String(packet.SenderAvatar); } catch { }
-                    }
+                    if (!string.IsNullOrEmpty(packet.SenderBio))
+                        sender.Bio = packet.SenderBio.Length > User.MaxBioLength ? packet.SenderBio.Substring(0, User.MaxBioLength) : packet.SenderBio;
                     Contacts.Add(sender);
                     ApplySearch();
                 }
@@ -532,9 +689,9 @@ namespace M_A_G_A.ViewModels
                     sender.LastSeen  = DateTime.Now;
                     sender.IpAddress = !string.IsNullOrEmpty(packet.IPv4) ? packet.IPv4 : senderIp;
                     if (!string.IsNullOrEmpty(packet.SenderAvatar))
-                    {
                         try { sender.AvatarBytes = Convert.FromBase64String(packet.SenderAvatar); } catch { }
-                    }
+                    if (!string.IsNullOrEmpty(packet.SenderBio))
+                        sender.Bio = packet.SenderBio.Length > User.MaxBioLength ? packet.SenderBio.Substring(0, User.MaxBioLength) : packet.SenderBio;
                 }
                 _lastHeartbeat[packet.SenderId] = DateTime.Now;
 
@@ -547,6 +704,7 @@ namespace M_A_G_A.ViewModels
                         try { imgBytes = Convert.FromBase64String(packet.Content ?? ""); } catch { }
                         msg = new ChatMessage
                         {
+                            Id         = packet.MessageId ?? Guid.NewGuid().ToString(),
                             SenderId   = packet.SenderId,
                             SenderName = packet.SenderName,
                             Type       = MessageType.Image,
@@ -562,6 +720,7 @@ namespace M_A_G_A.ViewModels
                         try { fileBytes = Convert.FromBase64String(packet.Content ?? ""); } catch { }
                         msg = new ChatMessage
                         {
+                            Id         = packet.MessageId ?? Guid.NewGuid().ToString(),
                             SenderId   = packet.SenderId,
                             SenderName = packet.SenderName,
                             Type       = MessageType.File,
@@ -572,9 +731,26 @@ namespace M_A_G_A.ViewModels
                         };
                         break;
 
+                    case "VIDEO":
+                        byte[] vidBytes = null;
+                        try { vidBytes = Convert.FromBase64String(packet.Content ?? ""); } catch { }
+                        msg = new ChatMessage
+                        {
+                            Id         = packet.MessageId ?? Guid.NewGuid().ToString(),
+                            SenderId   = packet.SenderId,
+                            SenderName = packet.SenderName,
+                            Type       = MessageType.Video,
+                            FileBytes  = vidBytes,
+                            FileName   = packet.FileName ?? "video",
+                            Timestamp  = DateTime.Now,
+                            IsSentByMe = false
+                        };
+                        break;
+
                     case "VOICE":
                         msg = new ChatMessage
                         {
+                            Id         = packet.MessageId ?? Guid.NewGuid().ToString(),
                             SenderId   = packet.SenderId,
                             SenderName = packet.SenderName,
                             Type       = MessageType.Voice,
@@ -587,6 +763,7 @@ namespace M_A_G_A.ViewModels
                     default: // TEXT (may contain markdown)
                         msg = new ChatMessage
                         {
+                            Id         = packet.MessageId ?? Guid.NewGuid().ToString(),
                             SenderId   = packet.SenderId,
                             SenderName = packet.SenderName,
                             Type       = MessageType.Text,
@@ -602,7 +779,19 @@ namespace M_A_G_A.ViewModels
                 SaveContactHistory(packet.SenderId);
 
                 if (_selectedContact?.Id == packet.SenderId)
+                {
                     CurrentMessages.Add(msg);
+                    // Send READ ACK immediately since chat is open
+                    SendAck(sender, packet.MessageId, "READ");
+                }
+                else
+                {
+                    // Send delivery ACK
+                    SendAck(sender, packet.MessageId, "ACK");
+                    // Increment unread counter
+                    sender.UnreadCount++;
+                    OnPropChanged(nameof(TotalUnread));
+                }
 
                 // ── Desktop notification ──────────────────────────────
                 if (_notificationsEnabled && _selectedContact?.Id != packet.SenderId)
@@ -613,10 +802,29 @@ namespace M_A_G_A.ViewModels
                         ? (content.Length > 80 ? content.Substring(0, 77) + "…" : content)
                         : msg.Type == MessageType.Image ? "📷 Изображение"
                         : msg.Type == MessageType.File  ? $"📎 {msg.FileName}"
+                        : msg.Type == MessageType.Video ? $"🎬 {msg.FileName}"
                         : "🎙 Голосовое сообщение";
                     NotificationRequired?.Invoke(title, body);
                 }
+
+                AppLogger.Info($"Message received type={packet.PacketType} from peer");
             });
+        }
+
+        private void SendAck(User to, string messageId, string type)
+        {
+            if (to == null || string.IsNullOrEmpty(messageId)) return;
+            var ack = new NetworkPacket
+            {
+                PacketType = type,
+                MessageId  = messageId,
+                SenderId   = _myId,
+                SenderName = _myName,
+                IPv4       = NetworkHelper.GetIPv4(),
+                TcpPort    = _server.Port,
+                Timestamp  = DateTime.Now.ToString("o")
+            };
+            Task.Run(() => TcpChatClient.Send(to.IpAddress, to.TcpPort, ack));
         }
 
         // ─── Messaging ─────────────────────────────────────────────
@@ -625,16 +833,35 @@ namespace M_A_G_A.ViewModels
             if (string.IsNullOrWhiteSpace(MessageInput) || _selectedContact == null) return;
             if (MessageInput.Length > 16000)
             {
-                MessageBox.Show("Сообщение слишком длинное. Максимальный размер — 16 000 символов.",
-                    "Ограничение", MessageBoxButton.OK, MessageBoxImage.Warning);
+                System.Windows.MessageBox.Show("Сообщение слишком длинное. Максимальный размер — 16 000 символов.",
+                    "Ограничение", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
                 return;
             }
+
+            // Check if editing an existing message
+            if (_editingMessage != null)
+            {
+                ConfirmEdit();
+                return;
+            }
+
             var text = MessageInput;
             MessageInput = "";
+            var msg    = new ChatMessage { Type = MessageType.Text, Content = text };
             var packet = BuildPacket("TEXT");
-            packet.Content = text;
-            SendToContact(packet);
-            AddMyMessage(new ChatMessage { Type = MessageType.Text, Content = text });
+            packet.MessageId = msg.Id = Guid.NewGuid().ToString();
+            packet.Content   = text;
+            AddMyMessage(msg);
+            Task.Run(() =>
+            {
+                var ok = TcpChatClient.Send(_selectedContact.IpAddress, _selectedContact.TcpPort, packet);
+                if (!ok)
+                    Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        msg.HasSendError = true;
+                        AppLogger.Warn($"Failed to send TEXT message to {_selectedContact.Username}");
+                    });
+            });
         }
 
         private void StartVoiceRecording()
@@ -668,7 +895,7 @@ namespace M_A_G_A.ViewModels
             AddMyMessage(new ChatMessage { Type = MessageType.Voice, Content = b64, FileName = packet.FileName });
         }
 
-        private void SendImage()
+        private async void SendImage()
         {
             var dlg = new Microsoft.Win32.OpenFileDialog
             {
@@ -676,36 +903,82 @@ namespace M_A_G_A.ViewModels
                 Title  = "Отправить изображение"
             };
             if (dlg.ShowDialog() != true) return;
-            var bytes    = File.ReadAllBytes(dlg.FileName);
-            var b64      = Convert.ToBase64String(bytes);
-            var packet   = BuildPacket("IMAGE");
-            packet.Content  = b64;
-            packet.FileName = Path.GetFileName(dlg.FileName);
-            SendToContact(packet);
-            AddMyMessage(new ChatMessage
+            var contact = _selectedContact;
+            if (contact == null) return;
+            ShowAttachMenu = false;
+            byte[] bytes = null;
+            try { bytes = await Task.Run(() => File.ReadAllBytes(dlg.FileName)); }
+            catch (Exception ex)
             {
-                Type       = MessageType.Image,
-                ImageBytes = bytes,
-                FileName   = packet.FileName
-            });
+                AppLogger.Error("SendImage read", ex);
+                AddErrorMessage($"Ошибка чтения файла: {ex.Message}");
+                return;
+            }
+            var b64    = Convert.ToBase64String(bytes);
+            var msg    = new ChatMessage { Type = MessageType.Image, ImageBytes = bytes, FileName = Path.GetFileName(dlg.FileName) };
+            var packet = BuildPacket("IMAGE");
+            packet.MessageId = msg.Id = Guid.NewGuid().ToString();
+            packet.Content   = b64;
+            packet.FileName  = msg.FileName;
+            AddMyMessage(msg);
+            bool ok = await Task.Run(() => TcpChatClient.Send(contact.IpAddress, contact.TcpPort, packet));
+            if (!ok) { msg.HasSendError = true; AppLogger.Warn($"Failed to send IMAGE to {contact.Username}"); }
         }
 
-        private void SendFile()
+        private async void SendFile()
         {
             var dlg = new Microsoft.Win32.OpenFileDialog { Title = "Отправить файл" };
             if (dlg.ShowDialog() != true) return;
-            var bytes    = File.ReadAllBytes(dlg.FileName);
-            var b64      = Convert.ToBase64String(bytes);
-            var packet   = BuildPacket("FILE");
-            packet.Content  = b64;
-            packet.FileName = Path.GetFileName(dlg.FileName);
-            SendToContact(packet);
-            AddMyMessage(new ChatMessage
+            var contact = _selectedContact;
+            if (contact == null) return;
+            ShowAttachMenu = false;
+            byte[] bytes = null;
+            try { bytes = await Task.Run(() => File.ReadAllBytes(dlg.FileName)); }
+            catch (Exception ex)
             {
-                Type      = MessageType.File,
-                FileBytes = bytes,
-                FileName  = packet.FileName
-            });
+                AppLogger.Error("SendFile read", ex);
+                AddErrorMessage($"Ошибка чтения файла: {ex.Message}");
+                return;
+            }
+            var b64    = Convert.ToBase64String(bytes);
+            var msg    = new ChatMessage { Type = MessageType.File, FileBytes = bytes, FileName = Path.GetFileName(dlg.FileName) };
+            var packet = BuildPacket("FILE");
+            packet.MessageId = msg.Id = Guid.NewGuid().ToString();
+            packet.Content   = b64;
+            packet.FileName  = msg.FileName;
+            AddMyMessage(msg);
+            bool ok = await Task.Run(() => TcpChatClient.Send(contact.IpAddress, contact.TcpPort, packet));
+            if (!ok) { msg.HasSendError = true; AppLogger.Warn($"Failed to send FILE to {contact.Username}"); }
+        }
+
+        private async void SendVideo()
+        {
+            var dlg = new Microsoft.Win32.OpenFileDialog
+            {
+                Filter = "Video|*.mp4;*.avi;*.mkv;*.mov;*.wmv;*.webm",
+                Title  = "Отправить видео"
+            };
+            if (dlg.ShowDialog() != true) return;
+            var contact = _selectedContact;
+            if (contact == null) return;
+            ShowAttachMenu = false;
+            byte[] bytes = null;
+            try { bytes = await Task.Run(() => File.ReadAllBytes(dlg.FileName)); }
+            catch (Exception ex)
+            {
+                AppLogger.Error("SendVideo read", ex);
+                AddErrorMessage($"Ошибка чтения файла: {ex.Message}");
+                return;
+            }
+            var b64    = Convert.ToBase64String(bytes);
+            var msg    = new ChatMessage { Type = MessageType.Video, FileBytes = bytes, FileName = Path.GetFileName(dlg.FileName) };
+            var packet = BuildPacket("VIDEO");
+            packet.MessageId = msg.Id = Guid.NewGuid().ToString();
+            packet.Content   = b64;
+            packet.FileName  = msg.FileName;
+            AddMyMessage(msg);
+            bool ok = await Task.Run(() => TcpChatClient.Send(contact.IpAddress, contact.TcpPort, packet));
+            if (!ok) { msg.HasSendError = true; AppLogger.Warn($"Failed to send VIDEO to {contact.Username}"); }
         }
 
         private void SaveReceivedFile(ChatMessage msg)
@@ -718,7 +991,11 @@ namespace M_A_G_A.ViewModels
             };
             if (dlg.ShowDialog() != true) return;
             try { File.WriteAllBytes(dlg.FileName, msg.FileBytes); }
-            catch (Exception ex) { MessageBox.Show(ex.Message, "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error); }
+            catch (Exception ex)
+            {
+                System.Windows.MessageBox.Show(ex.Message, "Ошибка",
+                    System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+            }
         }
 
         private void PlayVoiceMessage(ChatMessage msg)
@@ -876,9 +1153,9 @@ namespace M_A_G_A.ViewModels
 
         private void ClearPassword()
         {
-            var ans = MessageBox.Show("Убрать защиту паролем?", "Подтверждение",
-                MessageBoxButton.YesNo, MessageBoxImage.Question);
-            if (ans != MessageBoxResult.Yes) return;
+            var ans = System.Windows.MessageBox.Show("Убрать защиту паролем?", "Подтверждение",
+                System.Windows.MessageBoxButton.YesNo, System.Windows.MessageBoxImage.Question);
+            if (ans != System.Windows.MessageBoxResult.Yes) return;
             if (_settings == null) _settings = new AppSettings();
             _settings.PasswordHash = null;
             AppSettingsStore.Save(_settings);
@@ -912,7 +1189,8 @@ namespace M_A_G_A.ViewModels
             }
             catch (Exception ex)
             {
-                MessageBox.Show(ex.Message, "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                System.Windows.MessageBox.Show(ex.Message, "Ошибка",
+                    System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
             }
         }
 
@@ -941,12 +1219,129 @@ namespace M_A_G_A.ViewModels
                     _chatHistory.Remove(_selectedContact.Id);
                     LoadMessages(_selectedContact.Id);
                 }
-                MessageBox.Show("История успешно импортирована.", "Готово");
+                System.Windows.MessageBox.Show("История успешно импортирована.", "Готово");
             }
             catch (Exception ex)
             {
-                MessageBox.Show(ex.Message, "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                System.Windows.MessageBox.Show(ex.Message, "Ошибка",
+                    System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
             }
+        }
+
+        // ─── Message Edit / Delete / React ─────────────────────────
+        private void StartEdit(ChatMessage msg)
+        {
+            if (msg == null || !msg.IsSentByMe) return;
+            EditingMessage = msg;
+            MessageInput   = msg.Content ?? "";
+        }
+
+        private void ConfirmEdit()
+        {
+            if (_editingMessage == null || _selectedContact == null) return;
+            var newText = MessageInput;
+            MessageInput    = "";
+            _editingMessage.Content  = newText;
+            _editingMessage.IsEdited = true;
+            var id  = _editingMessage.Id;
+            EditingMessage  = null;
+            var packet = BuildPacket("EDIT");
+            packet.MessageId = id;
+            packet.Content   = newText;
+            var contact = _selectedContact;
+            Task.Run(() => TcpChatClient.Send(contact.IpAddress, contact.TcpPort, packet));
+            SaveContactHistory(_selectedContact.Id);
+        }
+
+        private void CancelEdit()
+        {
+            EditingMessage = null;
+            MessageInput   = "";
+        }
+
+        private void DeleteMessage(ChatMessage msg)
+        {
+            if (msg == null || _selectedContact == null) return;
+            var history = GetHistory(_selectedContact.Id);
+            history.Remove(msg);
+            CurrentMessages.Remove(msg);
+            SaveContactHistory(_selectedContact.Id);
+            if (msg.IsSentByMe)
+            {
+                var packet = BuildPacket("DELETE");
+                packet.MessageId = msg.Id;
+                var contact = _selectedContact;
+                Task.Run(() => TcpChatClient.Send(contact.IpAddress, contact.TcpPort, packet));
+            }
+        }
+
+        private void DoReact(object[] args)
+        {
+            // args[0] = ChatMessage, args[1] = emoji string
+            if (args == null || args.Length < 2) return;
+            var msg   = args[0] as ChatMessage;
+            var emoji = args[1] as string;
+            if (msg == null || string.IsNullOrEmpty(emoji) || _selectedContact == null) return;
+            msg.AddReaction(emoji, _myId);
+            var packet = BuildPacket("REACT");
+            packet.MessageId = msg.Id;
+            packet.Content   = emoji;
+            packet.Extra     = _myId;
+            var contact = _selectedContact;
+            Task.Run(() => TcpChatClient.Send(contact.IpAddress, contact.TcpPort, packet));
+        }
+
+        // ─── Selection ─────────────────────────────────────────────
+        private void ToggleSelect(ChatMessage msg)
+        {
+            if (msg == null) return;
+            msg.IsSelected = !msg.IsSelected;
+        }
+
+        private void ClearSelection()
+        {
+            foreach (var m in CurrentMessages)
+                m.IsSelected = false;
+        }
+
+        private void DeleteSelected()
+        {
+            var toDelete = CurrentMessages.Where(m => m.IsSelected).ToList();
+            foreach (var m in toDelete)
+                DeleteMessage(m);
+            IsSelectionMode = false;
+        }
+
+        // ─── Profile broadcast ─────────────────────────────────────
+        private void BroadcastProfile()
+        {
+            if (!IsSetupDone) return;
+            SaveProfile();
+            var packet = BuildPacket("PROFILE");
+            packet.SenderBio = _myBio;
+            foreach (var c in Contacts.Where(c => c.IsOnline).ToList())
+            {
+                var contact = c;
+                Task.Run(() => TcpChatClient.Send(contact.IpAddress, contact.TcpPort, packet));
+            }
+        }
+
+        // ─── Error message helper ──────────────────────────────────
+        private void AddErrorMessage(string error)
+        {
+            if (_selectedContact == null) return;
+            var msg = new ChatMessage
+            {
+                Id          = Guid.NewGuid().ToString(),
+                SenderId    = _myId,
+                SenderName  = _myName,
+                Type        = MessageType.Text,
+                Content     = $"⚠️ {error}",
+                Timestamp   = DateTime.Now,
+                IsSentByMe  = true,
+                HasSendError= true
+            };
+            CurrentMessages.Add(msg);
         }
 
         // ─── Transport ─────────────────────────────────────────────
@@ -960,10 +1355,10 @@ namespace M_A_G_A.ViewModels
 
         private void AddMyMessage(ChatMessage msg)
         {
-            msg.Id         = Guid.NewGuid().ToString();
+            if (string.IsNullOrEmpty(msg.Id)) msg.Id = Guid.NewGuid().ToString();
             msg.SenderId   = _myId;
             msg.SenderName = _myName;
-            msg.Timestamp  = DateTime.Now;
+            if (msg.Timestamp == default) msg.Timestamp = DateTime.Now;
             msg.IsSentByMe = true;
             var history = GetHistory(_selectedContact.Id);
             history.Add(msg);
@@ -978,6 +1373,7 @@ namespace M_A_G_A.ViewModels
             SenderId     = _myId,
             SenderName   = _myName,
             SenderAvatar = _myAvatar != null ? Convert.ToBase64String(_myAvatar) : "",
+            SenderBio    = _myBio,
             MacAddress   = NetworkHelper.GetMacAddress(),
             Hostname     = NetworkHelper.GetHostname(),
             IPv4         = NetworkHelper.GetIPv4(),

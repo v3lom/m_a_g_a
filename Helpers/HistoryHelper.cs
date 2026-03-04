@@ -25,16 +25,19 @@ namespace M_A_G_A.Helpers
         [DataContract]
         private class MessageDto
         {
-            [DataMember] public string Id         { get; set; }
-            [DataMember] public string SenderId   { get; set; }
-            [DataMember] public string SenderName { get; set; }
-            [DataMember] public string Type       { get; set; }
-            [DataMember] public string Content    { get; set; }   // text or base64 audio
-            [DataMember] public string ImageB64   { get; set; }   // for IMAGE
-            [DataMember] public string FileB64    { get; set; }   // for FILE
-            [DataMember] public string FileName   { get; set; }
-            [DataMember] public string Timestamp  { get; set; }
-            [DataMember] public bool   IsSentByMe { get; set; }
+            [DataMember] public string Id          { get; set; }
+            [DataMember] public string SenderId    { get; set; }
+            [DataMember] public string SenderName  { get; set; }
+            [DataMember] public string Type        { get; set; }
+            [DataMember] public string Content     { get; set; }   // text or base64 audio
+            [DataMember] public string ImageB64    { get; set; }   // for IMAGE
+            [DataMember] public string FileB64     { get; set; }   // for FILE/VIDEO
+            [DataMember] public string FileName    { get; set; }
+            [DataMember] public string Timestamp   { get; set; }
+            [DataMember] public bool   IsSentByMe  { get; set; }
+            [DataMember] public bool   IsDelivered { get; set; }
+            [DataMember] public bool   IsRead      { get; set; }
+            [DataMember] public bool   IsEdited    { get; set; }
         }
 
         [DataContract]
@@ -118,16 +121,19 @@ namespace M_A_G_A.Helpers
 
         private static MessageDto MessageToDto(ChatMessage m) => new MessageDto
         {
-            Id         = m.Id,
-            SenderId   = m.SenderId,
-            SenderName = m.SenderName,
-            Type       = m.Type.ToString(),
-            Content    = m.Content,
-            ImageB64   = m.ImageBytes != null ? Convert.ToBase64String(m.ImageBytes) : null,
-            FileB64    = m.FileBytes  != null ? Convert.ToBase64String(m.FileBytes)  : null,
-            FileName   = m.FileName,
-            Timestamp  = m.Timestamp.ToString("o"),
-            IsSentByMe = m.IsSentByMe
+            Id          = m.Id,
+            SenderId    = m.SenderId,
+            SenderName  = m.SenderName,
+            Type        = m.Type.ToString(),
+            Content     = m.Content,
+            ImageB64    = m.ImageBytes != null ? Convert.ToBase64String(m.ImageBytes) : null,
+            FileB64     = m.FileBytes  != null ? Convert.ToBase64String(m.FileBytes)  : null,
+            FileName    = m.FileName,
+            Timestamp   = m.Timestamp.ToString("o"),
+            IsSentByMe  = m.IsSentByMe,
+            IsDelivered = m.IsDelivered,
+            IsRead      = m.IsRead,
+            IsEdited    = m.IsEdited
         };
 
         private static ChatMessage DtoToMessage(MessageDto d)
@@ -136,16 +142,19 @@ namespace M_A_G_A.Helpers
             Enum.TryParse(d.Type, out type);
             return new ChatMessage
             {
-                Id         = d.Id ?? Guid.NewGuid().ToString(),
-                SenderId   = d.SenderId,
-                SenderName = d.SenderName,
-                Type       = type,
-                Content    = d.Content,
-                ImageBytes = !string.IsNullOrEmpty(d.ImageB64) ? Convert.FromBase64String(d.ImageB64) : null,
-                FileBytes  = !string.IsNullOrEmpty(d.FileB64)  ? Convert.FromBase64String(d.FileB64)  : null,
-                FileName   = d.FileName,
-                Timestamp  = DateTime.TryParse(d.Timestamp, null, System.Globalization.DateTimeStyles.RoundtripKind, out var dt) ? dt : DateTime.Now,
-                IsSentByMe = d.IsSentByMe
+                Id          = d.Id ?? Guid.NewGuid().ToString(),
+                SenderId    = d.SenderId,
+                SenderName  = d.SenderName,
+                Type        = type,
+                Content     = d.Content,
+                ImageBytes  = !string.IsNullOrEmpty(d.ImageB64) ? Convert.FromBase64String(d.ImageB64) : null,
+                FileBytes   = !string.IsNullOrEmpty(d.FileB64)  ? Convert.FromBase64String(d.FileB64)  : null,
+                FileName    = d.FileName,
+                Timestamp   = DateTime.TryParse(d.Timestamp, null, System.Globalization.DateTimeStyles.RoundtripKind, out var dt) ? dt : DateTime.Now,
+                IsSentByMe  = d.IsSentByMe,
+                IsDelivered = d.IsDelivered,
+                IsRead      = d.IsRead,
+                IsEdited    = d.IsEdited
             };
         }
 

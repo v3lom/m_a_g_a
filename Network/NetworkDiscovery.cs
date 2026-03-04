@@ -34,6 +34,7 @@ namespace M_A_G_A.Network
         private string _userId;
         private string _userName;
         private string _avatarBase64;
+        private string _bioText;
         private string _macAddress;
         private string _hostname;
         private string _ipv4;
@@ -123,6 +124,11 @@ namespace M_A_G_A.Network
             _avatarBase64 = avatarBase64 ?? "";
         }
 
+        public void UpdateBio(string bio)
+        {
+            _bioText = bio;
+        }
+
         /// <summary>
         /// When stealth mode is on the local peer stops broadcasting and becomes invisible
         /// to other peers, while still being able to receive messages from known contacts.
@@ -172,6 +178,7 @@ namespace M_A_G_A.Network
             SenderId     = _userId,
             SenderName   = _userName,
             SenderAvatar = _avatarBase64,
+            SenderBio    = _bioText,
             MacAddress   = _macAddress,
             Hostname     = _hostname,
             IPv4         = _ipv4,

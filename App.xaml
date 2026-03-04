@@ -13,6 +13,10 @@
         <conv:MessageBubbleColorConverter x:Key="BubbleColor"/>
         <conv:MessageTextColorConverter x:Key="BubbleTextColor"/>
         <conv:NullToVisConverter x:Key="NullToVis"/>
+        <conv:IntToVisConverter x:Key="IntToVis"/>
+        <conv:StatusGlyphColorConverter x:Key="StatusGlyphColor"/>
+        <conv:SelectionBrushConverter x:Key="SelectionBrush"/>
+        <conv:ObjectArrayConverter x:Key="ObjArray"/>
 
         <!-- Fonts -->
         <FontFamily x:Key="AppFont">Segoe UI</FontFamily>

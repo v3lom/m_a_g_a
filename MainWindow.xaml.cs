@@ -43,8 +43,8 @@ namespace M_A_G_A
                 }
                 if (EncryptionHelper.VerifyPassword(dlg.Password, settings.PasswordHash))
                     break;
-                MessageBox.Show("Неверный пароль. Попробуйте ещё раз.",
-                    "Ошибка", MessageBoxButton.OK, MessageBoxImage.Warning);
+                System.Windows.MessageBox.Show("Неверный пароль. Попробуйте ещё раз.",
+                    "Ошибка", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
             }
         }
 
