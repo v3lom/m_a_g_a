@@ -17,10 +17,18 @@ namespace M_A_G_A
             InitializeComponent();
             _vm = new AppViewModel();
             DataContext = _vm;
+            _vm.NotificationRequired += OnNotificationRequired;
             InitTrayIcon();
         }
 
         // ─── Tray icon ───────────────────────────────────────────────
+        private void OnNotificationRequired(string title, string body)
+        {
+            if (_trayIcon == null) return;
+            try { _trayIcon.ShowBalloonTip(4000, title, body, ToolTipIcon.Info); }
+            catch { }
+        }
+
         private void InitTrayIcon()
         {
             _trayIcon = new NotifyIcon

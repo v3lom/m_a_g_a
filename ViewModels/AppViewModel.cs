@@ -44,6 +44,9 @@ namespace M_A_G_A.ViewModels
         private bool   _isRecording;
         private bool   _autoStart;
         private bool   _showSettings;
+        private bool   _notificationsEnabled = true;
+        private bool   _stealthMode;
+        private string _manualIpInput;
 
         // ─── Info exposed for the UI ─────────────────────────────────
         public string MyMacAddress  => NetworkHelper.GetMacAddress();
@@ -84,7 +87,7 @@ namespace M_A_G_A.ViewModels
         public string MessageInput
         {
             get => _messageInput;
-            set { _messageInput = value; OnPropChanged(); }
+            set { _messageInput = value; OnPropChanged(); OnPropChanged(nameof(MessageLengthInfo)); }
         }
         public bool IsRecording
         {
@@ -106,6 +109,28 @@ namespace M_A_G_A.ViewModels
             get => _showSettings;
             set { _showSettings = value; OnPropChanged(); }
         }
+        public bool NotificationsEnabled
+        {
+            get => _notificationsEnabled;
+            set { _notificationsEnabled = value; OnPropChanged(); SaveExtendedSettings(); }
+        }
+        public bool StealthMode
+        {
+            get => _stealthMode;
+            set
+            {
+                _stealthMode = value;
+                OnPropChanged();
+                _discovery.SetStealth(value);
+                SaveExtendedSettings();
+            }
+        }
+        public string ManualIpInput
+        {
+            get => _manualIpInput;
+            set { _manualIpInput = value; OnPropChanged(); }
+        }
+        public string MessageLengthInfo => $"{_messageInput?.Length ?? 0}/16000";
 
         public User SelectedContact
         {
@@ -143,6 +168,12 @@ namespace M_A_G_A.ViewModels
         public ICommand ToggleSettingsCommand { get; }  // NEW
         public ICommand ExportHistoryCommand  { get; }  // NEW
         public ICommand ImportHistoryCommand  { get; }  // NEW
+        public ICommand CloseContactCommand   { get; }  // ESC to close chat
+        public ICommand ConnectByIpCommand    { get; }  // manual IP connect
+
+        // ─── Events ────────────────────────────────────────────────
+        /// <summary>Raised when an incoming message deserves a desktop notification.</summary>
+        public event Action<string, string> NotificationRequired; // (title, body)
 
         public AppViewModel()
         {
@@ -165,8 +196,11 @@ namespace M_A_G_A.ViewModels
             ToggleSettingsCommand = new RelayCommand(_ => ShowSettings = !ShowSettings);
             ExportHistoryCommand  = new RelayCommand(_ => ExportHistory());
             ImportHistoryCommand  = new RelayCommand(_ => ImportHistory(),         _ => SelectedContact != null);
+            CloseContactCommand   = new RelayCommand(_ => SelectedContact = null,  _ => SelectedContact != null);
+            ConnectByIpCommand    = new RelayCommand(_ => ConnectByIp(),           _ => !string.IsNullOrWhiteSpace(ManualIpInput));
 
             _autoStart = AutoStartHelper.IsEnabled();
+            LoadExtendedSettings();
 
             // Heartbeat checker
             new Timer(_ => CheckHeartbeats(), null, 5000, 5000);
@@ -182,6 +216,44 @@ namespace M_A_G_A.ViewModels
             if (File.Exists(avatarPath)) _myAvatar = File.ReadAllBytes(avatarPath);
         }
 
+        // ─── Extended settings (notifications, stealth) ────────────
+        private string ExtendedSettingsPath =>
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "MAGA", "settings.json");
+
+        private void LoadExtendedSettings()
+        {
+            try
+            {
+                if (!File.Exists(ExtendedSettingsPath)) return;
+                var json = File.ReadAllText(ExtendedSettingsPath, System.Text.Encoding.UTF8);
+                var s    = JsonHelper.Deserialize<ExtendedSettings>(json);
+                _notificationsEnabled = s.NotificationsEnabled;
+                _stealthMode          = s.StealthMode;
+            }
+            catch { }
+        }
+
+        private void SaveExtendedSettings()
+        {
+            try
+            {
+                var s = new ExtendedSettings
+                {
+                    NotificationsEnabled = _notificationsEnabled,
+                    StealthMode          = _stealthMode
+                };
+                File.WriteAllText(ExtendedSettingsPath, JsonHelper.Serialize(s), System.Text.Encoding.UTF8);
+            }
+            catch { }
+        }
+
+        [System.Runtime.Serialization.DataContract]
+        private class ExtendedSettings
+        {
+            [System.Runtime.Serialization.DataMember] public bool NotificationsEnabled { get; set; } = true;
+            [System.Runtime.Serialization.DataMember] public bool StealthMode          { get; set; } = false;
+        }
+
         // ─── Setup ─────────────────────────────────────────────────
         private void StartApp()
         {
@@ -192,6 +264,7 @@ namespace M_A_G_A.ViewModels
             _discovery.PeerDiscovered    += OnPeerDiscovered;
             _discovery.PeerDisconnected  += OnPeerDisconnected;
             _discovery.Start(_myId, _myName, _myAvatar != null ? Convert.ToBase64String(_myAvatar) : "", _server.Port);
+            if (_stealthMode) _discovery.SetStealth(true);
             IsSetupDone = true;
         }
 
@@ -423,6 +496,18 @@ namespace M_A_G_A.ViewModels
 
                 if (_selectedContact?.Id == packet.SenderId)
                     CurrentMessages.Add(msg);
+
+                // ── Desktop notification ──────────────────────────────
+                if (_notificationsEnabled && _selectedContact?.Id != packet.SenderId)
+                {
+                    var title = packet.SenderName ?? "Новое сообщение";
+                    var body  = msg.Type == MessageType.Text
+                        ? (msg.Content?.Length > 80 ? msg.Content.Substring(0, 77) + "…" : msg.Content) ?? ""
+                        : msg.Type == MessageType.Image ? "📷 Изображение"
+                        : msg.Type == MessageType.File  ? $"📎 {msg.FileName}"
+                        : "🎙 Голосовое сообщение";
+                    NotificationRequired?.Invoke(title, body);
+                }
             });
         }
 
@@ -430,6 +515,12 @@ namespace M_A_G_A.ViewModels
         private void SendText()
         {
             if (string.IsNullOrWhiteSpace(MessageInput) || _selectedContact == null) return;
+            if (MessageInput.Length > 16000)
+            {
+                MessageBox.Show("Сообщение слишком длинное. Максимальный размер — 16 000 символов.",
+                    "Ограничение", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
             var text = MessageInput;
             MessageInput = "";
             var packet = BuildPacket("TEXT");
@@ -533,6 +624,38 @@ namespace M_A_G_A.ViewModels
                 _audio.PlayAudio(bytes, () => Application.Current.Dispatcher.Invoke(() => msg.IsPlaying = false));
             }
             catch { }
+        }
+
+        // ─── Manual IP connect ─────────────────────────────────────
+        private void ConnectByIp()
+        {
+            var ip = ManualIpInput?.Trim();
+            if (string.IsNullOrEmpty(ip)) return;
+            // Send a discovery packet directly to that IP so they show up in the contact list
+            var packet = new NetworkPacket
+            {
+                PacketType   = "DISCOVER",
+                SenderId     = _myId,
+                SenderName   = _myName,
+                SenderAvatar = _myAvatar != null ? Convert.ToBase64String(_myAvatar) : "",
+                MacAddress   = NetworkHelper.GetMacAddress(),
+                Hostname     = NetworkHelper.GetHostname(),
+                IPv4         = NetworkHelper.GetIPv4(),
+                IPv6         = NetworkHelper.GetIPv6(),
+                TcpPort      = _server.Port,
+                Timestamp    = DateTime.Now.ToString("o")
+            };
+            System.Threading.Tasks.Task.Run(() =>
+            {
+                try
+                {
+                    var data = System.Text.Encoding.UTF8.GetBytes(JsonHelper.Serialize(packet));
+                    using (var udp = new System.Net.Sockets.UdpClient())
+                        udp.Send(data, data.Length, ip, 45678);
+                }
+                catch { }
+            });
+            ManualIpInput = "";
         }
 
         // ─── History export/import ─────────────────────────────────
@@ -688,6 +811,7 @@ namespace M_A_G_A.ViewModels
             foreach (var kv in _chatHistory)
                 HistoryHelper.SaveHistory(kv.Key, kv.Value);
             SaveProfile();
+            SaveExtendedSettings();
         }
 
         public event PropertyChangedEventHandler PropertyChanged;

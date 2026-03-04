@@ -26,6 +26,7 @@ namespace M_A_G_A.Network
         private UdpClient     _listener;
         private Timer         _broadcastTimer;
         private volatile bool _running;
+        private volatile bool _stealth;
 
         public event Action<NetworkPacket, string> PeerDiscovered;
         public event Action<string>                PeerDisconnected;
@@ -88,7 +89,7 @@ namespace M_A_G_A.Network
 
         private void BroadcastAll()
         {
-            if (!_running) return;
+            if (!_running || _stealth) return;
             var data = Encoding.UTF8.GetBytes(BuildDiscoverJson());
             SendUdp(_broadcastSender, data, new IPEndPoint(IPAddress.Broadcast, DiscoveryPort));
             foreach (var subnet in NetworkHelper.GetSubnetBroadcasts())
@@ -120,6 +121,17 @@ namespace M_A_G_A.Network
         public void UpdateAvatar(string avatarBase64)
         {
             _avatarBase64 = avatarBase64 ?? "";
+        }
+
+        /// <summary>
+        /// When stealth mode is on the local peer stops broadcasting and becomes invisible
+        /// to other peers, while still being able to receive messages from known contacts.
+        /// </summary>
+        public void SetStealth(bool stealth)
+        {
+            _stealth = stealth;
+            // Send a BYE so existing contacts see us go offline immediately
+            if (stealth) SendBye();
         }
 
         // ─── Listener thread ─────────────────────────────────────────────
