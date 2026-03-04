@@ -6,6 +6,7 @@
     <Application.Resources>
         <!-- Converters -->
         <conv:BytesToImageConverter x:Key="BytesToImage"/>
+        <conv:BytesToBrushConverter x:Key="BytesToBrush"/>
         <conv:BoolToVisConverter x:Key="BoolToVis"/>
         <conv:BoolToColorConverter x:Key="BoolToColor"/>
         <conv:MessageAlignmentConverter x:Key="MsgAlign"/>

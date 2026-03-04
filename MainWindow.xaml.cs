@@ -3,6 +3,7 @@ using System.Drawing;
 using System.Windows;
 using System.Windows.Forms;
 using System.Windows.Input;
+using M_A_G_A.Helpers;
 using M_A_G_A.ViewModels;
 
 namespace M_A_G_A
@@ -19,6 +20,33 @@ namespace M_A_G_A
             DataContext = _vm;
             _vm.NotificationRequired += OnNotificationRequired;
             InitTrayIcon();
+
+            // Check password on startup
+            CheckPasswordOnStartup();
+        }
+
+        // ─── Password unlock ────────────────────────────────────────────
+        private void CheckPasswordOnStartup()
+        {
+            var settings = AppSettingsStore.Load();
+            if (string.IsNullOrEmpty(settings.PasswordHash)) return;
+
+            // Show password prompt until correct password entered or dialog cancelled
+            while (true)
+            {
+                var entered = Microsoft.VisualBasic.Interaction.InputBox(
+                    "Введите пароль для запуска MAGA Messenger:",
+                    "Защита паролем", "");
+                if (entered == null) // cancelled
+                {
+                    ExitApp();
+                    return;
+                }
+                if (EncryptionHelper.VerifyPassword(entered, settings.PasswordHash))
+                    break;
+                MessageBox.Show("Неверный пароль. Попробуйте ещё раз.",
+                    "Ошибка", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
         }
 
         // ─── Tray icon ───────────────────────────────────────────────

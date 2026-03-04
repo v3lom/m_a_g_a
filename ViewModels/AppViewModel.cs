@@ -47,6 +47,10 @@ namespace M_A_G_A.ViewModels
         private bool   _notificationsEnabled = true;
         private bool   _stealthMode;
         private string _manualIpInput;
+        private bool   _isEmojiPickerOpen;
+        private bool   _isLightTheme;
+        private byte[] _globalChatBackground;
+        private string _selectedFolderFilter;  // null = show all
 
         // ─── Info exposed for the UI ─────────────────────────────────
         public string MyMacAddress  => NetworkHelper.GetMacAddress();
@@ -63,6 +67,8 @@ namespace M_A_G_A.ViewModels
         public ObservableCollection<User>        Contacts        { get; } = new ObservableCollection<User>();
         public ObservableCollection<User>        FilteredContacts{ get; } = new ObservableCollection<User>();
         public ObservableCollection<ChatMessage> CurrentMessages { get; } = new ObservableCollection<ChatMessage>();
+        public ObservableCollection<ChatFolder>  Folders         { get; } = new ObservableCollection<ChatFolder>();
+        public ObservableCollection<string>      FolderFilters   { get; } = new ObservableCollection<string>();
 
         private readonly Dictionary<string, ObservableCollection<ChatMessage>> _chatHistory
             = new Dictionary<string, ObservableCollection<ChatMessage>>();
@@ -112,7 +118,7 @@ namespace M_A_G_A.ViewModels
         public bool NotificationsEnabled
         {
             get => _notificationsEnabled;
-            set { _notificationsEnabled = value; OnPropChanged(); SaveExtendedSettings(); }
+            set { _notificationsEnabled = value; OnPropChanged(); SaveSettings(); }
         }
         public bool StealthMode
         {
@@ -122,7 +128,7 @@ namespace M_A_G_A.ViewModels
                 _stealthMode = value;
                 OnPropChanged();
                 _discovery.SetStealth(value);
-                SaveExtendedSettings();
+                SaveSettings();
             }
         }
         public string ManualIpInput
@@ -131,6 +137,34 @@ namespace M_A_G_A.ViewModels
             set { _manualIpInput = value; OnPropChanged(); }
         }
         public string MessageLengthInfo => $"{_messageInput?.Length ?? 0}/16000";
+
+        public bool IsEmojiPickerOpen
+        {
+            get => _isEmojiPickerOpen;
+            set { _isEmojiPickerOpen = value; OnPropChanged(); }
+        }
+        public bool IsLightTheme
+        {
+            get => _isLightTheme;
+            set { _isLightTheme = value; OnPropChanged(); SaveSettings(); }
+        }
+        public byte[] GlobalChatBackground
+        {
+            get => _globalChatBackground;
+            set { _globalChatBackground = value; OnPropChanged(); OnPropChanged(nameof(ActiveChatBackground)); SaveSettings(); }
+        }
+        /// <summary>Per-chat background if set, otherwise global background.</summary>
+        public byte[] ActiveChatBackground
+            => (_selectedContact?.ChatBackground?.Length > 0)
+               ? _selectedContact.ChatBackground
+               : _globalChatBackground;
+
+        public string SelectedFolderFilter
+        {
+            get => _selectedFolderFilter;
+            set { _selectedFolderFilter = value; OnPropChanged(); ApplySearch(); }
+        }
+        public bool HasPassword => !string.IsNullOrEmpty(_settings?.PasswordHash);
 
         public User SelectedContact
         {
@@ -142,6 +176,7 @@ namespace M_A_G_A.ViewModels
                 _selectedContact = value;
                 OnPropChanged();
                 OnPropChanged(nameof(HasSelectedContact));
+                OnPropChanged(nameof(ActiveChatBackground));
                 LoadMessages(value?.Id);
             }
         }
@@ -170,10 +205,27 @@ namespace M_A_G_A.ViewModels
         public ICommand ImportHistoryCommand  { get; }  // NEW
         public ICommand CloseContactCommand   { get; }  // ESC to close chat
         public ICommand ConnectByIpCommand    { get; }  // manual IP connect
+        // ─── New commands ────────────────────────────────────────────
+        public ICommand ToggleEmojiPickerCommand        { get; }
+        public ICommand InsertEmojiCommand              { get; }
+        public ICommand PickGlobalBackgroundCommand     { get; }
+        public ICommand ClearGlobalBackgroundCommand    { get; }
+        public ICommand PickContactBackgroundCommand    { get; }
+        public ICommand ClearContactBackgroundCommand   { get; }
+        public ICommand CreateFolderCommand             { get; }
+        public ICommand DeleteFolderCommand             { get; }
+        public ICommand SetContactFolderCommand         { get; }
+        public ICommand SelectFolderFilterCommand       { get; }
+        public ICommand SetPasswordCommand              { get; }
+        public ICommand ClearPasswordCommand            { get; }
+        public ICommand ToggleThemeCommand              { get; }
 
         // ─── Events ────────────────────────────────────────────────
         /// <summary>Raised when an incoming message deserves a desktop notification.</summary>
         public event Action<string, string> NotificationRequired; // (title, body)
+
+        // ─── Cached settings reference ───────────────────────────────
+        private AppSettings _settings;
 
         public AppViewModel()
         {
@@ -199,8 +251,22 @@ namespace M_A_G_A.ViewModels
             CloseContactCommand   = new RelayCommand(_ => SelectedContact = null,  _ => SelectedContact != null);
             ConnectByIpCommand    = new RelayCommand(_ => ConnectByIp(),           _ => !string.IsNullOrWhiteSpace(ManualIpInput));
 
+            ToggleEmojiPickerCommand     = new RelayCommand(_ => IsEmojiPickerOpen = !IsEmojiPickerOpen);
+            InsertEmojiCommand           = new RelayCommand(e => InsertEmoji(e as string));
+            PickGlobalBackgroundCommand  = new RelayCommand(_ => PickGlobalBackground());
+            ClearGlobalBackgroundCommand = new RelayCommand(_ => GlobalChatBackground = null, _ => _globalChatBackground != null);
+            PickContactBackgroundCommand = new RelayCommand(_ => PickContactBackground(), _ => SelectedContact != null);
+            ClearContactBackgroundCommand= new RelayCommand(_ => ClearContactBackground(), _ => SelectedContact?.HasChatBackground == true);
+            CreateFolderCommand          = new RelayCommand(_ => CreateFolder());
+            DeleteFolderCommand          = new RelayCommand(f => DeleteFolder(f as ChatFolder), f => f is ChatFolder);
+            SetContactFolderCommand      = new RelayCommand(f => SetContactFolder(f as string), _ => SelectedContact != null);
+            SelectFolderFilterCommand    = new RelayCommand(f => SelectedFolderFilter = f as string);
+            SetPasswordCommand           = new RelayCommand(_ => SetPassword());
+            ClearPasswordCommand         = new RelayCommand(_ => ClearPassword(), _ => HasPassword);
+            ToggleThemeCommand           = new RelayCommand(_ => IsLightTheme = !IsLightTheme);
+
             _autoStart = AutoStartHelper.IsEnabled();
-            LoadExtendedSettings();
+            LoadSettings();
 
             // Heartbeat checker
             new Timer(_ => CheckHeartbeats(), null, 5000, 5000);
@@ -216,42 +282,81 @@ namespace M_A_G_A.ViewModels
             if (File.Exists(avatarPath)) _myAvatar = File.ReadAllBytes(avatarPath);
         }
 
-        // ─── Extended settings (notifications, stealth) ────────────
-        private string ExtendedSettingsPath =>
-            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "MAGA", "settings.json");
-
-        private void LoadExtendedSettings()
+        // ─── Settings (uses AppSettingsStore) ──────────────────────
+        private void LoadSettings()
         {
-            try
+            _settings             = AppSettingsStore.Load();
+            _notificationsEnabled = _settings.NotificationsEnabled;
+            _stealthMode          = _settings.StealthMode;
+            _isLightTheme         = _settings.IsLightTheme;
+
+            // Global background
+            if (!string.IsNullOrEmpty(_settings.GlobalBackgroundB64))
             {
-                if (!File.Exists(ExtendedSettingsPath)) return;
-                var json = File.ReadAllText(ExtendedSettingsPath, System.Text.Encoding.UTF8);
-                var s    = JsonHelper.Deserialize<ExtendedSettings>(json);
-                _notificationsEnabled = s.NotificationsEnabled;
-                _stealthMode          = s.StealthMode;
+                try { _globalChatBackground = Convert.FromBase64String(_settings.GlobalBackgroundB64); }
+                catch { }
             }
-            catch { }
+
+            // Folders
+            Folders.Clear();
+            if (_settings.Folders != null)
+                foreach (var f in _settings.Folders)
+                    Folders.Add(f);
+            RebuildFolderFilters();
         }
 
-        private void SaveExtendedSettings()
+        private void SaveSettings()
         {
-            try
+            if (_settings == null) _settings = new AppSettings();
+            _settings.NotificationsEnabled = _notificationsEnabled;
+            _settings.StealthMode          = _stealthMode;
+            _settings.IsLightTheme         = _isLightTheme;
+            _settings.GlobalBackgroundB64  = _globalChatBackground != null
+                ? Convert.ToBase64String(_globalChatBackground) : null;
+            _settings.Folders = new List<ChatFolder>(Folders);
+
+            // Save per-contact backgrounds
+            _settings.ContactBackgrounds = new List<ContactBgEntry>();
+            foreach (var c in Contacts)
             {
-                var s = new ExtendedSettings
+                if (c.ChatBackground?.Length > 0)
+                    _settings.ContactBackgrounds.Add(new ContactBgEntry
+                    {
+                        ContactId    = c.Id,
+                        BackgroundB64 = Convert.ToBase64String(c.ChatBackground)
+                    });
+            }
+            AppSettingsStore.Save(_settings);
+        }
+
+        // Keep old method name for Dispose() reference
+        private void SaveExtendedSettings() => SaveSettings();
+
+        private void RestoreContactSettings(User user)
+        {
+            if (_settings == null) return;
+            // Restore background
+            if (_settings.ContactBackgrounds != null)
+            {
+                var entry = _settings.ContactBackgrounds.FirstOrDefault(e => e.ContactId == user.Id);
+                if (entry != null && !string.IsNullOrEmpty(entry.BackgroundB64))
                 {
-                    NotificationsEnabled = _notificationsEnabled,
-                    StealthMode          = _stealthMode
-                };
-                File.WriteAllText(ExtendedSettingsPath, JsonHelper.Serialize(s), System.Text.Encoding.UTF8);
+                    try { user.ChatBackground = Convert.FromBase64String(entry.BackgroundB64); }
+                    catch { }
+                }
             }
-            catch { }
-        }
-
-        [System.Runtime.Serialization.DataContract]
-        private class ExtendedSettings
-        {
-            [System.Runtime.Serialization.DataMember] public bool NotificationsEnabled { get; set; } = true;
-            [System.Runtime.Serialization.DataMember] public bool StealthMode          { get; set; } = false;
+            // Restore folder assignment
+            if (_settings.Folders != null)
+            {
+                foreach (var folder in _settings.Folders)
+                {
+                    if (folder.ContactIds?.Contains(user.Id) == true)
+                    {
+                        user.FolderName = folder.Name;
+                        break;
+                    }
+                }
+            }
         }
 
         // ─── Setup ─────────────────────────────────────────────────
@@ -350,6 +455,8 @@ namespace M_A_G_A.ViewModels
                         LastSeen    = DateTime.Now,
                         AvatarBytes = avatar
                     };
+                    // Restore per-contact background + folder from saved settings
+                    RestoreContactSettings(user);
                     Contacts.Add(user);
                     ApplySearch();
                 }
@@ -659,6 +766,127 @@ namespace M_A_G_A.ViewModels
             ManualIpInput = "";
         }
 
+        // ─── Emoji picker ──────────────────────────────────────────
+        private void InsertEmoji(string emoji)
+        {
+            if (string.IsNullOrEmpty(emoji)) return;
+            MessageInput = (MessageInput ?? "") + emoji;
+            IsEmojiPickerOpen = false;
+        }
+
+        // ─── Chat backgrounds ─────────────────────────────────────
+        private void PickGlobalBackground()
+        {
+            var dlg = new Microsoft.Win32.OpenFileDialog
+            {
+                Filter = "Images|*.png;*.jpg;*.jpeg;*.bmp",
+                Title  = "Выберите обои чата (глобально)"
+            };
+            if (dlg.ShowDialog() != true) return;
+            try { GlobalChatBackground = File.ReadAllBytes(dlg.FileName); }
+            catch { }
+        }
+
+        private void PickContactBackground()
+        {
+            if (_selectedContact == null) return;
+            var dlg = new Microsoft.Win32.OpenFileDialog
+            {
+                Filter = "Images|*.png;*.jpg;*.jpeg;*.bmp",
+                Title  = "Выберите обои для этого чата"
+            };
+            if (dlg.ShowDialog() != true) return;
+            try
+            {
+                _selectedContact.ChatBackground = File.ReadAllBytes(dlg.FileName);
+                OnPropChanged(nameof(ActiveChatBackground));
+                SaveSettings();
+            }
+            catch { }
+        }
+
+        private void ClearContactBackground()
+        {
+            if (_selectedContact == null) return;
+            _selectedContact.ChatBackground = null;
+            OnPropChanged(nameof(ActiveChatBackground));
+            SaveSettings();
+        }
+
+        // ─── Folders ──────────────────────────────────────────────
+        private void CreateFolder()
+        {
+            var name = Microsoft.VisualBasic.Interaction.InputBox(
+                "Введите название новой папки:", "Создать папку", "Новая папка");
+            if (string.IsNullOrWhiteSpace(name)) return;
+            var folder = new ChatFolder { Name = name.Trim() };
+            Folders.Add(folder);
+            RebuildFolderFilters();
+            SaveSettings();
+        }
+
+        private void DeleteFolder(ChatFolder folder)
+        {
+            if (folder == null) return;
+            // Unassign all contacts in this folder
+            foreach (var c in Contacts.Where(c => c.FolderName == folder.Name))
+                c.FolderName = null;
+            Folders.Remove(folder);
+            if (SelectedFolderFilter == folder.Name) SelectedFolderFilter = null;
+            RebuildFolderFilters();
+            SaveSettings();
+        }
+
+        private void SetContactFolder(string folderName)
+        {
+            if (_selectedContact == null) return;
+            _selectedContact.FolderName = string.IsNullOrEmpty(folderName) ? null : folderName;
+            // Sync folder.ContactIds for persistence
+            foreach (var f in Folders)
+            {
+                if (!f.ContactIds.Contains(_selectedContact.Id) && f.Name == folderName)
+                    f.ContactIds.Add(_selectedContact.Id);
+                else if (f.ContactIds.Contains(_selectedContact.Id) && f.Name != folderName)
+                    f.ContactIds.Remove(_selectedContact.Id);
+            }
+            ApplySearch();
+            SaveSettings();
+        }
+
+        private void RebuildFolderFilters()
+        {
+            FolderFilters.Clear();
+            FolderFilters.Add(null);   // "All"
+            foreach (var f in Folders)
+                FolderFilters.Add(f.Name);
+        }
+
+        // ─── Password ─────────────────────────────────────────────
+        private void SetPassword()
+        {
+            var pwd = Microsoft.VisualBasic.Interaction.InputBox(
+                "Введите новый пароль (оставьте пустым чтобы убрать):",
+                "Защита паролем", "");
+            if (pwd == null) return;  // cancelled
+            if (_settings == null) _settings = new AppSettings();
+            _settings.PasswordHash = string.IsNullOrEmpty(pwd)
+                ? null
+                : EncryptionHelper.HashPassword(pwd);
+            AppSettingsStore.Save(_settings);
+            OnPropChanged(nameof(HasPassword));
+        }
+
+        private void ClearPassword()
+        {
+            var ans = MessageBox.Show("Убрать защиту паролем?", "Подтверждение",
+                MessageBoxButton.YesNo, MessageBoxImage.Question);
+            if (ans != MessageBoxResult.Yes) return;
+            if (_settings == null) _settings = new AppSettings();
+            _settings.PasswordHash = null;
+            AppSettingsStore.Save(_settings);
+            OnPropChanged(nameof(HasPassword));
+        }
+
         // ─── History export/import ─────────────────────────────────
         private void ExportHistory()
         {
@@ -793,10 +1021,16 @@ namespace M_A_G_A.ViewModels
             FilteredContacts.Clear();
             var q = _searchQuery?.Trim().ToLower() ?? "";
             foreach (var c in Contacts.Where(c =>
-                string.IsNullOrEmpty(q)
-                || c.Username.ToLower().Contains(q)
-                || (c.Hostname ?? "").ToLower().Contains(q)
-                || (c.IpAddress ?? "").Contains(q)))
+            {
+                // folder filter
+                if (_selectedFolderFilter != null && c.FolderName != _selectedFolderFilter)
+                    return false;
+                // text filter
+                return string.IsNullOrEmpty(q)
+                    || c.Username.ToLower().Contains(q)
+                    || (c.Hostname ?? "").ToLower().Contains(q)
+                    || (c.IpAddress ?? "").Contains(q);
+            }))
                 FilteredContacts.Add(c);
         }
 
@@ -812,7 +1046,7 @@ namespace M_A_G_A.ViewModels
             foreach (var kv in _chatHistory)
                 HistoryHelper.SaveHistory(kv.Key, kv.Value);
             SaveProfile();
-            SaveExtendedSettings();
+            SaveSettings();
         }
 
         public event PropertyChangedEventHandler PropertyChanged;

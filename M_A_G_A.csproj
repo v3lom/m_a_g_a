@@ -79,6 +79,7 @@
     <Reference Include="System.IO.Compression" />
     <Reference Include="System.IO.Compression.FileSystem" />
     <Reference Include="System.Windows.Forms" />
+    <Reference Include="Microsoft.VisualBasic" />
     <Reference Include="Microsoft.Win32" Condition="False" />
     <Reference Include="System.Xaml">
       <RequiredTargetFramework>4.0</RequiredTargetFramework>
@@ -123,6 +124,7 @@
     <Compile Include="Models\User.cs" />
     <Compile Include="Models\ChatMessage.cs" />
     <Compile Include="Models\NetworkPacket.cs" />
+    <Compile Include="Models\ChatFolder.cs" />
     <Compile Include="Network\NetworkDiscovery.cs" />
     <Compile Include="Network\TcpChatServer.cs" />
     <Compile Include="Network\TcpChatClient.cs" />
@@ -132,6 +134,9 @@
     <Compile Include="Helpers\HistoryHelper.cs" />
     <Compile Include="Helpers\AutoStartHelper.cs" />
     <Compile Include="Helpers\MarkdownText.cs" />
+    <Compile Include="Helpers\EncryptionHelper.cs" />
+    <Compile Include="Helpers\ThemeManager.cs" />
+    <Compile Include="Helpers\AppSettingsStore.cs" />
     <Compile Include="Converters\Converters.cs" />
     <Compile Include="ViewModels\AppViewModel.cs" />
   </ItemGroup>
