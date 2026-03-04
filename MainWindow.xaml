@@ -8,7 +8,7 @@
         WindowStyle="None" AllowsTransparency="True"
         Background="Transparent"
         ResizeMode="CanResizeWithGrip"
-        WindowStartupLocation="CenterScreen">
+        WindowStartupLocation="CenterScreen" Icon="/maga_icon.png">
 
     <Window.Resources>
         <Style x:Key="ChromeButton" TargetType="Button">

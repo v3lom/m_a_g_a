@@ -3,6 +3,7 @@ using System.Drawing;
 using System.Windows;
 using System.Windows.Forms;
 using System.Windows.Input;
+using M_A_G_A.Helpers;
 using M_A_G_A.ViewModels;
 
 namespace M_A_G_A
@@ -17,15 +18,41 @@ namespace M_A_G_A
             InitializeComponent();
             _vm = new AppViewModel();
             DataContext = _vm;
+            _vm.NotificationRequired += OnNotificationRequired;
             InitTrayIcon();
         }
 
         // ─── Tray icon ───────────────────────────────────────────────
+        private void OnNotificationRequired(string title, string body)
+        {
+            if (_trayIcon == null) return;
+            try { _trayIcon.ShowBalloonTip(4000, title, body, ToolTipIcon.Info); }
+            catch { }
+        }
+
         private void InitTrayIcon()
         {
+            // Try to use the embedded app icon; fall back to system icon
+            System.Drawing.Icon appIcon;
+            try
+            {
+                var uri = new Uri("pack://application:,,,/maga_icon.png", UriKind.Absolute);
+                var sri = System.Windows.Application.GetResourceStream(uri);
+                if (sri != null)
+                {
+                    using (var bmp = new System.Drawing.Bitmap(sri.Stream))
+                    {
+                        var hIcon = bmp.GetHicon();
+                        appIcon = System.Drawing.Icon.FromHandle(hIcon);
+                    }
+                }
+                else { appIcon = SystemIcons.Application; }
+            }
+            catch { appIcon = SystemIcons.Application; }
+
             _trayIcon = new NotifyIcon
             {
-                Icon    = SystemIcons.Application,
+                Icon    = appIcon,
                 Text    = "MAGA Messenger",
                 Visible = true
             };
