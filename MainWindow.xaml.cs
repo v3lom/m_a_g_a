@@ -37,7 +37,7 @@ namespace M_A_G_A
             try
             {
                 var uri = new Uri("pack://application:,,,/maga_icon.png", UriKind.Absolute);
-                var sri = Application.GetResourceStream(uri);
+                var sri = System.Windows.Application.GetResourceStream(uri);
                 if (sri != null)
                 {
                     using (var bmp = new System.Drawing.Bitmap(sri.Stream))

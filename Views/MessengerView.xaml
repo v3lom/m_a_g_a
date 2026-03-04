@@ -206,7 +206,7 @@
                     BorderBrush="{StaticResource BorderBrush2}" BorderThickness="0,1,0,0"
                     MaxHeight="420">
                 <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                <StackPanel Padding="16,14">
+                <StackPanel>
                     <TextBlock Text="НАСТРОЙКИ" FontSize="10" FontWeight="SemiBold"
                                Foreground="{StaticResource TextSecBrush}" Margin="0,0,0,10"/>
 
