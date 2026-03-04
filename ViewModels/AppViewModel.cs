@@ -349,6 +349,8 @@ namespace M_A_G_A.ViewModels
             var avatarPath = Path.Combine(cfg, "avatar.png");
             var bioPath    = Path.Combine(cfg, "bio.txt");
             if (File.Exists(namePath))   { var n = File.ReadAllText(namePath).Trim(); if (!string.IsNullOrEmpty(n)) _myName = n; }
+            // Default name = PC hostname on first run
+            if (string.IsNullOrWhiteSpace(_myName)) _myName = Environment.MachineName;
             if (File.Exists(avatarPath)) _myAvatar = File.ReadAllBytes(avatarPath);
             if (File.Exists(bioPath))    { var b = File.ReadAllText(bioPath, System.Text.Encoding.UTF8).Trim(); if (!string.IsNullOrEmpty(b)) _myBio = b.Length > User.MaxBioLength ? b.Substring(0, User.MaxBioLength) : b; }
         }
@@ -899,30 +901,34 @@ namespace M_A_G_A.ViewModels
         {
             var dlg = new Microsoft.Win32.OpenFileDialog
             {
-                Filter = "Images|*.png;*.jpg;*.jpeg;*.bmp;*.gif;*.webp",
-                Title  = "Отправить изображение"
+                Filter    = "Images|*.png;*.jpg;*.jpeg;*.bmp;*.gif;*.webp",
+                Title     = "Отправить изображение",
+                Multiselect = true
             };
             if (dlg.ShowDialog() != true) return;
             var contact = _selectedContact;
             if (contact == null) return;
             ShowAttachMenu = false;
-            byte[] bytes = null;
-            try { bytes = await Task.Run(() => File.ReadAllBytes(dlg.FileName)); }
-            catch (Exception ex)
+            foreach (var filePath in dlg.FileNames)
             {
-                AppLogger.Error("SendImage read", ex);
-                AddErrorMessage($"Ошибка чтения файла: {ex.Message}");
-                return;
+                byte[] bytes = null;
+                try { bytes = await Task.Run(() => File.ReadAllBytes(filePath)); }
+                catch (Exception ex)
+                {
+                    AppLogger.Error("SendImage read", ex);
+                    AddErrorMessage($"Ошибка чтения файла: {ex.Message}");
+                    continue;
+                }
+                var b64    = Convert.ToBase64String(bytes);
+                var msg    = new ChatMessage { Type = MessageType.Image, ImageBytes = bytes, FileName = Path.GetFileName(filePath) };
+                var packet = BuildPacket("IMAGE");
+                packet.MessageId = msg.Id = Guid.NewGuid().ToString();
+                packet.Content   = b64;
+                packet.FileName  = msg.FileName;
+                AddMyMessage(msg);
+                bool ok = await Task.Run(() => TcpChatClient.Send(contact.IpAddress, contact.TcpPort, packet));
+                if (!ok) { msg.HasSendError = true; AppLogger.Warn($"Failed to send IMAGE to {contact.Username}"); }
             }
-            var b64    = Convert.ToBase64String(bytes);
-            var msg    = new ChatMessage { Type = MessageType.Image, ImageBytes = bytes, FileName = Path.GetFileName(dlg.FileName) };
-            var packet = BuildPacket("IMAGE");
-            packet.MessageId = msg.Id = Guid.NewGuid().ToString();
-            packet.Content   = b64;
-            packet.FileName  = msg.FileName;
-            AddMyMessage(msg);
-            bool ok = await Task.Run(() => TcpChatClient.Send(contact.IpAddress, contact.TcpPort, packet));
-            if (!ok) { msg.HasSendError = true; AppLogger.Warn($"Failed to send IMAGE to {contact.Username}"); }
         }
 
         private async void SendFile()

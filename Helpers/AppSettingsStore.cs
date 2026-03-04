@@ -63,13 +63,14 @@ namespace M_A_G_A.Helpers
     [DataContract]
     public class AppSettings
     {
-        [DataMember] public bool   NotificationsEnabled { get; set; } = true;
-        [DataMember] public bool   StealthMode          { get; set; } = false;
-        [DataMember] public bool   IsLightTheme         { get; set; } = false;
-        [DataMember] public string PasswordHash         { get; set; } = null;
-        [DataMember] public string GlobalBackgroundB64  { get; set; } = null;
-        [DataMember] public List<ChatFolder> Folders    { get; set; } = new List<ChatFolder>();
+        [DataMember] public bool   NotificationsEnabled  { get; set; } = true;
+        [DataMember] public bool   StealthMode           { get; set; } = false;
+        [DataMember] public bool   IsLightTheme          { get; set; } = false;
+        [DataMember] public string PasswordHash          { get; set; } = null;
+        [DataMember] public string GlobalBackgroundB64   { get; set; } = null;
+        [DataMember] public List<ChatFolder> Folders     { get; set; } = new List<ChatFolder>();
         [DataMember] public List<ContactBgEntry> ContactBackgrounds { get; set; } = new List<ContactBgEntry>();
+        [DataMember] public bool   AutoStartConfigured   { get; set; } = false;
     }
 
     [DataContract]

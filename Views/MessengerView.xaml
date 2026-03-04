@@ -199,13 +199,14 @@
                 </StackPanel>
             </ScrollViewer>
 
-            <!-- Settings panel (inline) -->
+            <!-- Settings panel (inline, scrollable) -->
             <Border Grid.Row="4"
                     Visibility="{Binding ShowSettings, Converter={StaticResource BoolToVis}}"
                     Background="{StaticResource Surface2Brush}"
                     BorderBrush="{StaticResource BorderBrush2}" BorderThickness="0,1,0,0"
-                    Padding="16,14">
-                <StackPanel>
+                    MaxHeight="420">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <StackPanel Padding="16,14">
                     <TextBlock Text="НАСТРОЙКИ" FontSize="10" FontWeight="SemiBold"
                                Foreground="{StaticResource TextSecBrush}" Margin="0,0,0,10"/>
 
@@ -345,28 +346,8 @@
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
-
-                    <!-- ─── Password ─── -->
-                    <TextBlock Text="БЕЗОПАСНОСТЬ" FontSize="10" FontWeight="SemiBold"
-                               Foreground="{StaticResource TextSecBrush}" Margin="0,14,0,6"/>
-                    <StackPanel Orientation="Horizontal">
-                        <Button Content="🔒 Пароль" Style="{StaticResource IconButton}"
-                                Command="{Binding SetPasswordCommand}"
-                                Background="{StaticResource Surface3Brush}"
-                                Padding="10,6" FontSize="11" Margin="0,0,6,0"
-                                ToolTip="Установить/изменить пароль"/>
-                        <Button Content="Убрать" Style="{StaticResource IconButton}"
-                                Command="{Binding ClearPasswordCommand}"
-                                Background="{StaticResource Surface3Brush}"
-                                Padding="10,6" FontSize="11"
-                                Visibility="{Binding HasPassword, Converter={StaticResource BoolToVis}}"
-                                ToolTip="Убрать пароль"/>
-                    </StackPanel>
-                    <TextBlock FontSize="10" Foreground="{StaticResource TextSecBrush}" Margin="0,4,0,0"
-                               Visibility="{Binding HasPassword, Converter={StaticResource BoolToVis}}">
-                        <Run Text="🔐 Защита паролем включена"/>
-                    </TextBlock>
                 </StackPanel>
+                </ScrollViewer>
             </Border>
         </Grid>
 

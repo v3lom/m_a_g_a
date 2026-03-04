@@ -20,32 +20,6 @@ namespace M_A_G_A
             DataContext = _vm;
             _vm.NotificationRequired += OnNotificationRequired;
             InitTrayIcon();
-
-            // Check password on startup
-            CheckPasswordOnStartup();
-        }
-
-        // ─── Password unlock ────────────────────────────────────────────
-        private void CheckPasswordOnStartup()
-        {
-            var settings = AppSettingsStore.Load();
-            if (string.IsNullOrEmpty(settings.PasswordHash)) return;
-
-            // Show password prompt until correct password entered or dialog cancelled
-            while (true)
-            {
-                var dlg = new M_A_G_A.Views.PasswordDialog("Введите пароль для запуска MAGA Messenger:");
-                dlg.Owner = this;
-                if (dlg.ShowDialog() != true)
-                {
-                    ExitApp();
-                    return;
-                }
-                if (EncryptionHelper.VerifyPassword(dlg.Password, settings.PasswordHash))
-                    break;
-                System.Windows.MessageBox.Show("Неверный пароль. Попробуйте ещё раз.",
-                    "Ошибка", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
-            }
         }
 
         // ─── Tray icon ───────────────────────────────────────────────
@@ -58,9 +32,27 @@ namespace M_A_G_A
 
         private void InitTrayIcon()
         {
+            // Try to use the embedded app icon; fall back to system icon
+            System.Drawing.Icon appIcon;
+            try
+            {
+                var uri = new Uri("pack://application:,,,/maga_icon.png", UriKind.Absolute);
+                var sri = Application.GetResourceStream(uri);
+                if (sri != null)
+                {
+                    using (var bmp = new System.Drawing.Bitmap(sri.Stream))
+                    {
+                        var hIcon = bmp.GetHicon();
+                        appIcon = System.Drawing.Icon.FromHandle(hIcon);
+                    }
+                }
+                else { appIcon = SystemIcons.Application; }
+            }
+            catch { appIcon = SystemIcons.Application; }
+
             _trayIcon = new NotifyIcon
             {
-                Icon    = SystemIcons.Application,
+                Icon    = appIcon,
                 Text    = "MAGA Messenger",
                 Visible = true
             };
