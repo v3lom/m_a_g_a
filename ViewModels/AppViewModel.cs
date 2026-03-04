@@ -56,6 +56,8 @@ namespace M_A_G_A.ViewModels
         private bool   _isSelectionMode;
         private bool   _showAttachMenu;
         private ChatMessage _editingMessage;
+        private bool   _useJsonStorage;
+        private string _appLanguage = "ru";
 
         // ─── Info exposed for the UI ─────────────────────────────────
         public string MyMacAddress  => NetworkHelper.GetMacAddress();
@@ -169,7 +171,31 @@ namespace M_A_G_A.ViewModels
             get => _selectedFolderFilter;
             set { _selectedFolderFilter = value; OnPropChanged(); ApplySearch(); }
         }
-        public bool HasPassword => !string.IsNullOrEmpty(_settings?.PasswordHash);
+
+        /// <summary>When true, messages to/from the selected contact are AES-encrypted.</summary>
+        public bool ContactEncryptionEnabled => _selectedContact?.EncryptionEnabled == true;
+
+        /// <summary>When true, chat history is stored in JSON files instead of SQLite.</summary>
+        public bool UseJsonStorage
+        {
+            get => _useJsonStorage;
+            set { _useJsonStorage = value; OnPropChanged(); SaveSettings(); }
+        }
+
+        /// <summary>Current UI language: "ru" or "en".</summary>
+        public string AppLanguage
+        {
+            get => _appLanguage;
+            set
+            {
+                _appLanguage = value;
+                LocalizationManager.Instance.Language = value;
+                OnPropChanged();
+                SaveSettings();
+            }
+        }
+
+        public LocalizationManager L => LocalizationManager.Instance;
 
         public string MyBio
         {
@@ -216,6 +242,7 @@ namespace M_A_G_A.ViewModels
                 OnPropChanged();
                 OnPropChanged(nameof(HasSelectedContact));
                 OnPropChanged(nameof(ActiveChatBackground));
+                OnPropChanged(nameof(ContactEncryptionEnabled));
                 if (value != null) value.UnreadCount = 0;
                 IsSelectionMode  = false;
                 EditingMessage   = null;
@@ -240,15 +267,15 @@ namespace M_A_G_A.ViewModels
         public ICommand SelectContactCommand  { get; }
         public ICommand PickAvatarCommand     { get; }
         public ICommand SendVoiceFileCommand  { get; }
-        public ICommand SendImageCommand      { get; }  // NEW
-        public ICommand SendFileCommand       { get; }  // NEW
-        public ICommand SaveFileCommand       { get; }  // NEW – save received file
-        public ICommand ToggleSettingsCommand { get; }  // NEW
-        public ICommand ExportHistoryCommand  { get; }  // NEW
-        public ICommand ImportHistoryCommand  { get; }  // NEW
-        public ICommand CloseContactCommand   { get; }  // ESC to close chat
-        public ICommand ConnectByIpCommand    { get; }  // manual IP connect
-        // ─── New commands ────────────────────────────────────────────
+        public ICommand SendImageCommand      { get; }
+        public ICommand SendFileCommand       { get; }
+        public ICommand SaveFileCommand       { get; }
+        public ICommand ToggleSettingsCommand { get; }
+        public ICommand ExportHistoryCommand  { get; }
+        public ICommand ImportHistoryCommand  { get; }
+        public ICommand CloseContactCommand   { get; }
+        public ICommand ConnectByIpCommand    { get; }
+        // ─── UI commands ─────────────────────────────────────────────
         public ICommand ToggleEmojiPickerCommand        { get; }
         public ICommand InsertEmojiCommand              { get; }
         public ICommand PickGlobalBackgroundCommand     { get; }
@@ -259,9 +286,8 @@ namespace M_A_G_A.ViewModels
         public ICommand DeleteFolderCommand             { get; }
         public ICommand SetContactFolderCommand         { get; }
         public ICommand SelectFolderFilterCommand       { get; }
-        public ICommand SetPasswordCommand              { get; }
-        public ICommand ClearPasswordCommand            { get; }
         public ICommand ToggleThemeCommand              { get; }
+        public ICommand ToggleLanguageCommand           { get; }
         // ─── Message management commands ─────────────────────────────
         public ICommand EditMessageCommand              { get; }
         public ICommand ConfirmEditCommand              { get; }
@@ -271,11 +297,18 @@ namespace M_A_G_A.ViewModels
         public ICommand ToggleSelectModeCommand         { get; }
         public ICommand ToggleMessageSelectCommand      { get; }
         public ICommand DeleteSelectedCommand           { get; }
+        public ICommand RetryMessageCommand             { get; }
         // ─── Attachment menu ─────────────────────────────────────────
         public ICommand ToggleAttachMenuCommand         { get; }
         public ICommand SendVideoCommand                { get; }
         // ─── Profile broadcast ───────────────────────────────────────
         public ICommand BroadcastProfileCommand         { get; }
+        // ─── Encryption ──────────────────────────────────────────────
+        public ICommand RequestEncryptionCommand        { get; }
+        public ICommand DisableEncryptionCommand        { get; }
+        // ─── Storage migration ───────────────────────────────────────
+        public ICommand MigrateToSqliteCommand          { get; }
+        public ICommand MigrateToJsonCommand            { get; }
 
         // ─── Events ────────────────────────────────────────────────
         /// <summary>Raised when an incoming message deserves a desktop notification.</summary>
@@ -318,9 +351,8 @@ namespace M_A_G_A.ViewModels
             DeleteFolderCommand          = new RelayCommand(f => DeleteFolder(f as ChatFolder), f => f is ChatFolder);
             SetContactFolderCommand      = new RelayCommand(f => SetContactFolder(f as string), _ => SelectedContact != null);
             SelectFolderFilterCommand    = new RelayCommand(f => SelectedFolderFilter = f as string);
-            SetPasswordCommand           = new RelayCommand(_ => SetPassword());
-            ClearPasswordCommand         = new RelayCommand(_ => ClearPassword(), _ => HasPassword);
             ToggleThemeCommand           = new RelayCommand(_ => IsLightTheme = !IsLightTheme);
+            ToggleLanguageCommand        = new RelayCommand(_ => ToggleLanguage());
 
             EditMessageCommand           = new RelayCommand(msg => StartEdit(msg as ChatMessage), msg => msg is ChatMessage m && m.IsSentByMe);
             ConfirmEditCommand           = new RelayCommand(_ => ConfirmEdit(),     _ => IsEditing && !string.IsNullOrWhiteSpace(MessageInput));
@@ -330,9 +362,14 @@ namespace M_A_G_A.ViewModels
             ToggleSelectModeCommand      = new RelayCommand(_ => IsSelectionMode = !IsSelectionMode);
             ToggleMessageSelectCommand   = new RelayCommand(msg => ToggleSelect(msg as ChatMessage));
             DeleteSelectedCommand        = new RelayCommand(_ => DeleteSelected(), _ => IsSelectionMode);
+            RetryMessageCommand          = new RelayCommand(msg => RetryMessage(msg as ChatMessage), msg => msg is ChatMessage m && m.HasSendError);
             ToggleAttachMenuCommand      = new RelayCommand(_ => ShowAttachMenu = !ShowAttachMenu);
             SendVideoCommand             = new RelayCommand(_ => SendVideo(),        _ => SelectedContact != null);
             BroadcastProfileCommand      = new RelayCommand(_ => BroadcastProfile());
+            RequestEncryptionCommand     = new RelayCommand(_ => RequestEncryption(), _ => SelectedContact != null);
+            DisableEncryptionCommand     = new RelayCommand(_ => DisableEncryption(), _ => SelectedContact?.EncryptionEnabled == true);
+            MigrateToSqliteCommand       = new RelayCommand(_ => DoMigrateToSqlite());
+            MigrateToJsonCommand         = new RelayCommand(_ => DoMigrateToJson());
 
             _autoStart = AutoStartHelper.IsEnabled();
             LoadSettings();
@@ -362,6 +399,9 @@ namespace M_A_G_A.ViewModels
             _notificationsEnabled = _settings.NotificationsEnabled;
             _stealthMode          = _settings.StealthMode;
             _isLightTheme         = _settings.IsLightTheme;
+            _useJsonStorage       = _settings.UseJsonStorage;
+            _appLanguage          = _settings.AppLanguage ?? "ru";
+            LocalizationManager.Instance.Language = _appLanguage;
 
             // Global background
             if (!string.IsNullOrEmpty(_settings.GlobalBackgroundB64))
@@ -384,6 +424,8 @@ namespace M_A_G_A.ViewModels
             _settings.NotificationsEnabled = _notificationsEnabled;
             _settings.StealthMode          = _stealthMode;
             _settings.IsLightTheme         = _isLightTheme;
+            _settings.UseJsonStorage       = _useJsonStorage;
+            _settings.AppLanguage          = _appLanguage;
             _settings.GlobalBackgroundB64  = _globalChatBackground != null
                 ? Convert.ToBase64String(_globalChatBackground) : null;
             _settings.Folders = new List<ChatFolder>(Folders);
@@ -395,10 +437,23 @@ namespace M_A_G_A.ViewModels
                 if (c.ChatBackground?.Length > 0)
                     _settings.ContactBackgrounds.Add(new ContactBgEntry
                     {
-                        ContactId    = c.Id,
+                        ContactId     = c.Id,
                         BackgroundB64 = Convert.ToBase64String(c.ChatBackground)
                     });
             }
+
+            // Save per-contact encryption keys
+            _settings.EncryptionKeys = new List<ContactEncryptionEntry>();
+            foreach (var c in Contacts)
+            {
+                if (c.EncryptionEnabled && !string.IsNullOrEmpty(c.ChatEncryptionKey))
+                    _settings.EncryptionKeys.Add(new ContactEncryptionEntry
+                    {
+                        ContactId     = c.Id,
+                        EncryptionKey = c.ChatEncryptionKey
+                    });
+            }
+
             AppSettingsStore.Save(_settings);
         }
 
@@ -428,6 +483,16 @@ namespace M_A_G_A.ViewModels
                         user.FolderName = folder.Name;
                         break;
                     }
+                }
+            }
+            // Restore per-dialog encryption key
+            if (_settings.EncryptionKeys != null)
+            {
+                var enc = _settings.EncryptionKeys.FirstOrDefault(e => e.ContactId == user.Id);
+                if (enc != null && !string.IsNullOrEmpty(enc.EncryptionKey))
+                {
+                    user.ChatEncryptionKey  = enc.EncryptionKey;
+                    user.EncryptionEnabled  = true;
                 }
             }
         }
@@ -660,6 +725,42 @@ namespace M_A_G_A.ViewModels
                         }
                         return;
                     }
+
+                    case "ENCRYPT_REQ":
+                    {
+                        // The other party wants to start encrypted chat.
+                        // Ask user to enter the shared password.
+                        var reqSender = Contacts.FirstOrDefault(c => c.Id == packet.SenderId);
+                        var senderName = reqSender?.Username ?? packet.SenderName ?? "?";
+                        var prompt = $"{senderName} {LocalizationManager.Instance["encrypt_request_body"]}";
+                        var dlg = new M_A_G_A.Views.InputDialog(
+                            LocalizationManager.Instance["encrypt_request_title"], "");
+                        dlg.Title = $"{senderName} — {LocalizationManager.Instance["encrypt_request_title"]}";
+                        if (dlg.ShowDialog() == true && !string.IsNullOrWhiteSpace(dlg.InputText))
+                        {
+                            var key = DeriveDialogKey(dlg.InputText, _myId);  // derive from our ID as salt
+                            if (reqSender != null)
+                            {
+                                reqSender.ChatEncryptionKey  = key;
+                                reqSender.EncryptionEnabled  = true;
+                                if (_selectedContact?.Id == reqSender.Id)
+                                    OnPropChanged(nameof(ContactEncryptionEnabled));
+                                SaveSettings();
+                                // Send ACK
+                                var ack = BuildPacket("ENCRYPT_ACK");
+                                Task.Run(() => TcpChatClient.Send(reqSender.IpAddress, reqSender.TcpPort, ack));
+                            }
+                        }
+                        return;
+                    }
+
+                    case "ENCRYPT_ACK":
+                    {
+                        // The other party accepted our encryption request.
+                        if (_selectedContact?.Id == packet.SenderId)
+                            AddSystemMessage(LocalizationManager.Instance["encrypt_success"]);
+                        return;
+                    }
                 }
 
                 // ── Ensure sender exists in contacts ──────────────────
@@ -763,17 +864,30 @@ namespace M_A_G_A.ViewModels
                         break;
 
                     default: // TEXT (may contain markdown)
+                    {
+                        // Decrypt if encrypted
+                        var textContent = packet.Content;
+                        if (packet.IsEncrypted && !string.IsNullOrEmpty(textContent))
+                        {
+                            var senderContact = Contacts.FirstOrDefault(c => c.Id == packet.SenderId);
+                            if (senderContact?.EncryptionEnabled == true && !string.IsNullOrEmpty(senderContact.ChatEncryptionKey))
+                            {
+                                var decrypted = EncryptionHelper.DecryptMessage(textContent, senderContact.ChatEncryptionKey);
+                                textContent = decrypted ?? $"🔒 {LocalizationManager.Instance["encrypt_failed"]}";
+                            }
+                        }
                         msg = new ChatMessage
                         {
                             Id         = packet.MessageId ?? Guid.NewGuid().ToString(),
                             SenderId   = packet.SenderId,
                             SenderName = packet.SenderName,
                             Type       = MessageType.Text,
-                            Content    = packet.Content,
+                            Content    = textContent,
                             Timestamp  = DateTime.Now,
                             IsSentByMe = false
                         };
                         break;
+                    }
                 }
 
                 var history = GetHistory(packet.SenderId);
@@ -852,20 +966,36 @@ namespace M_A_G_A.ViewModels
             var msg    = new ChatMessage { Type = MessageType.Text, Content = text };
             var packet = BuildPacket("TEXT");
             packet.MessageId = msg.Id = Guid.NewGuid().ToString();
-            packet.Content   = text;
+
+            // Encrypt if enabled for this contact
+            if (_selectedContact.EncryptionEnabled && !string.IsNullOrEmpty(_selectedContact.ChatEncryptionKey))
+            {
+                var encrypted = EncryptionHelper.EncryptMessage(text, _selectedContact.ChatEncryptionKey);
+                if (encrypted != null)
+                {
+                    packet.Content     = encrypted;
+                    packet.IsEncrypted = true;
+                }
+                else { packet.Content = text; }
+            }
+            else { packet.Content = text; }
+
             AddMyMessage(msg);
+            var contact = _selectedContact;
+            msg.IsSending = true;
             Task.Run(() =>
             {
-                var ok = TcpChatClient.Send(_selectedContact.IpAddress, _selectedContact.TcpPort, packet);
-                if (!ok)
-                    Application.Current.Dispatcher.Invoke(() =>
+                var ok = TcpChatClient.Send(contact.IpAddress, contact.TcpPort, packet);
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    msg.IsSending = false;
+                    if (!ok)
                     {
                         msg.HasSendError = true;
-                        AppLogger.Warn($"Failed to send TEXT message to {_selectedContact.Username}");
-                    });
+                        AppLogger.Warn($"Failed to send TEXT message to {contact.Username}");
+                    }
+                });
             });
-        }
-
         private void StartVoiceRecording()
         {
             _audio.StartRecording();
@@ -926,7 +1056,16 @@ namespace M_A_G_A.ViewModels
                 packet.Content   = b64;
                 packet.FileName  = msg.FileName;
                 AddMyMessage(msg);
-                bool ok = await Task.Run(() => TcpChatClient.Send(contact.IpAddress, contact.TcpPort, packet));
+                msg.IsSending     = true;
+                msg.SendProgress  = 0;
+                bool ok = await Task.Run(() =>
+                {
+                    Application.Current.Dispatcher.Invoke(() => msg.SendProgress = 50);
+                    var result = TcpChatClient.Send(contact.IpAddress, contact.TcpPort, packet);
+                    Application.Current.Dispatcher.Invoke(() => msg.SendProgress = 100);
+                    return result;
+                });
+                msg.IsSending = false;
                 if (!ok) { msg.HasSendError = true; AppLogger.Warn($"Failed to send IMAGE to {contact.Username}"); }
             }
         }
@@ -953,7 +1092,16 @@ namespace M_A_G_A.ViewModels
             packet.Content   = b64;
             packet.FileName  = msg.FileName;
             AddMyMessage(msg);
-            bool ok = await Task.Run(() => TcpChatClient.Send(contact.IpAddress, contact.TcpPort, packet));
+            msg.IsSending    = true;
+            msg.SendProgress = 0;
+            bool ok = await Task.Run(() =>
+            {
+                Application.Current.Dispatcher.Invoke(() => msg.SendProgress = 50);
+                var result = TcpChatClient.Send(contact.IpAddress, contact.TcpPort, packet);
+                Application.Current.Dispatcher.Invoke(() => msg.SendProgress = 100);
+                return result;
+            });
+            msg.IsSending = false;
             if (!ok) { msg.HasSendError = true; AppLogger.Warn($"Failed to send FILE to {contact.Username}"); }
         }
 
@@ -1099,9 +1247,9 @@ namespace M_A_G_A.ViewModels
         // ─── Folders ──────────────────────────────────────────────
         private void CreateFolder()
         {
-            var dlg = new M_A_G_A.Views.PasswordDialog("Введите название новой папки:");
-            if (dlg.ShowDialog() != true || string.IsNullOrWhiteSpace(dlg.Password)) return;
-            var folder = new ChatFolder { Name = dlg.Password.Trim() };
+            var dlg = new M_A_G_A.Views.InputDialog(LocalizationManager.Instance["folder_name_prompt"]);
+            if (dlg.ShowDialog() != true || string.IsNullOrWhiteSpace(dlg.InputText)) return;
+            var folder = new ChatFolder { Name = dlg.InputText.Trim() };
             Folders.Add(folder);
             RebuildFolderFilters();
             SaveSettings();
@@ -1143,29 +1291,92 @@ namespace M_A_G_A.ViewModels
                 FolderFilters.Add(f.Name);
         }
 
-        // ─── Password ─────────────────────────────────────────────
-        private void SetPassword()
+        // ─── Language ─────────────────────────────────────────────
+        private void ToggleLanguage()
         {
-            var dlg = new M_A_G_A.Views.PasswordDialog("Введите новый пароль (пустой — убрать защиту):");
-            if (dlg.ShowDialog() != true) return;
-            if (_settings == null) _settings = new AppSettings();
-            var pwd = dlg.Password;
-            _settings.PasswordHash = string.IsNullOrEmpty(pwd)
-                ? null
-                : EncryptionHelper.HashPassword(pwd);
-            AppSettingsStore.Save(_settings);
-            OnPropChanged(nameof(HasPassword));
+            AppLanguage = _appLanguage == "ru" ? "en" : "ru";
         }
 
-        private void ClearPassword()
+        // ─── Per-dialog Encryption ────────────────────────────────
+        private void RequestEncryption()
         {
-            var ans = System.Windows.MessageBox.Show("Убрать защиту паролем?", "Подтверждение",
-                System.Windows.MessageBoxButton.YesNo, System.Windows.MessageBoxImage.Question);
-            if (ans != System.Windows.MessageBoxResult.Yes) return;
-            if (_settings == null) _settings = new AppSettings();
-            _settings.PasswordHash = null;
-            AppSettingsStore.Save(_settings);
-            OnPropChanged(nameof(HasPassword));
+            if (_selectedContact == null) return;
+            var contact = _selectedContact;
+
+            if (contact.EncryptionEnabled)
+            {
+                // Already enabled – show status
+                AddSystemMessage(LocalizationManager.Instance["encrypt_success"]);
+                return;
+            }
+
+            // Ask user to enter a shared password
+            var prompt = $"{LocalizationManager.Instance["encrypt_set_password"]} {contact.Username}:";
+            var dlg = new M_A_G_A.Views.InputDialog(prompt);
+            if (dlg.ShowDialog() != true || string.IsNullOrWhiteSpace(dlg.InputText)) return;
+
+            // Derive a 32-byte AES key from the password and a static salt (contact ID)
+            var password = dlg.InputText;
+            var key = DeriveDialogKey(password, contact.Id);
+
+            // Send ENCRYPT_REQ to contact so they know to enable encryption
+            var packet = BuildPacket("ENCRYPT_REQ");
+            packet.Content = contact.Id;  // We send our own ID as challenge
+            Task.Run(() => TcpChatClient.Send(contact.IpAddress, contact.TcpPort, packet));
+
+            contact.ChatEncryptionKey = key;
+            contact.EncryptionEnabled = true;
+            OnPropChanged(nameof(ContactEncryptionEnabled));
+            SaveSettings();
+            AddSystemMessage(LocalizationManager.Instance["encrypt_success"]);
+        }
+
+        private void DisableEncryption()
+        {
+            if (_selectedContact == null) return;
+            _selectedContact.EncryptionEnabled  = false;
+            _selectedContact.ChatEncryptionKey  = null;
+            OnPropChanged(nameof(ContactEncryptionEnabled));
+            SaveSettings();
+        }
+
+        /// <summary>Derives a 32-byte AES key from a shared password and a salt (contact ID).</summary>
+        private static string DeriveDialogKey(string password, string contactId)
+        {
+            using (var kdf = new System.Security.Cryptography.Rfc2898DeriveBytes(
+                password,
+                System.Text.Encoding.UTF8.GetBytes(contactId.PadRight(16, '0').Substring(0, 16)),
+                100_000))
+            {
+                return Convert.ToBase64String(kdf.GetBytes(32));
+            }
+        }
+
+        // ─── Storage Migration ────────────────────────────────────
+        private void DoMigrateToSqlite()
+        {
+            try
+            {
+                var (contacts, messages) = MigrationHelper.MigrateJsonToSqlite();
+                MessageBox.Show($"Перенесено {messages} сообщений из {contacts} диалогов в SQLite.", "Миграция завершена");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message, "Ошибка миграции", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void DoMigrateToJson()
+        {
+            try
+            {
+                var (contacts, messages) = MigrationHelper.MigrateSqliteToJson();
+                MessageBox.Show($"Перенесено {messages} сообщений из {contacts} диалогов в JSON.", "Миграция завершена");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message, "Ошибка миграции", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
         // ─── History export/import ─────────────────────────────────
@@ -1402,8 +1613,19 @@ namespace M_A_G_A.ViewModels
         {
             if (!_chatHistory.ContainsKey(id))
             {
-                var list = HistoryHelper.LoadHistory(id);
-                var oc   = new ObservableCollection<ChatMessage>(list);
+                List<ChatMessage> list;
+                if (_useJsonStorage)
+                    list = HistoryHelper.LoadHistory(id);
+                else
+                {
+                    try { list = SqliteHistoryHelper.LoadHistory(id); }
+                    catch (Exception ex)
+                    {
+                        AppLogger.Error("SQLite LoadHistory failed, falling back to JSON", ex);
+                        list = HistoryHelper.LoadHistory(id);
+                    }
+                }
+                var oc = new ObservableCollection<ChatMessage>(list);
                 _chatHistory[id] = oc;
             }
             return _chatHistory[id];
@@ -1412,7 +1634,73 @@ namespace M_A_G_A.ViewModels
         private void SaveContactHistory(string id)
         {
             if (!_chatHistory.ContainsKey(id)) return;
-            HistoryHelper.SaveHistory(id, _chatHistory[id]);
+            try
+            {
+                if (_useJsonStorage)
+                    HistoryHelper.SaveHistory(id, _chatHistory[id]);
+                else
+                    SqliteHistoryHelper.SaveHistory(id, _chatHistory[id]);
+            }
+            catch (Exception ex)
+            {
+                AppLogger.Error("SQLite SaveHistory failed, falling back to JSON", ex);
+                HistoryHelper.SaveHistory(id, _chatHistory[id]);
+            }
+        }
+
+        // ─── Retry failed message ──────────────────────────────────
+        private void RetryMessage(ChatMessage msg)
+        {
+            if (msg == null || !msg.HasSendError || _selectedContact == null) return;
+            msg.HasSendError = false;
+            msg.IsSending    = true;
+
+            NetworkPacket packet;
+            switch (msg.Type)
+            {
+                case MessageType.Text:
+                {
+                    packet = BuildPacket("TEXT");
+                    packet.MessageId = msg.Id;
+                    // Re-encrypt if needed
+                    var content = msg.Content ?? "";
+                    if (_selectedContact.EncryptionEnabled && !string.IsNullOrEmpty(_selectedContact.ChatEncryptionKey))
+                    {
+                        var encrypted = EncryptionHelper.EncryptMessage(content, _selectedContact.ChatEncryptionKey);
+                        if (encrypted != null) { packet.Content = encrypted; packet.IsEncrypted = true; }
+                        else { packet.Content = content; }
+                    }
+                    else { packet.Content = content; }
+                    break;
+                }
+                case MessageType.Image:
+                    packet = BuildPacket("IMAGE");
+                    packet.MessageId = msg.Id;
+                    packet.Content   = msg.ImageBytes != null ? Convert.ToBase64String(msg.ImageBytes) : "";
+                    packet.FileName  = msg.FileName;
+                    break;
+                case MessageType.File:
+                    packet = BuildPacket("FILE");
+                    packet.MessageId = msg.Id;
+                    packet.Content   = msg.FileBytes != null ? Convert.ToBase64String(msg.FileBytes) : "";
+                    packet.FileName  = msg.FileName;
+                    break;
+                default:
+                    msg.IsSending = false;
+                    return;
+            }
+
+            var contact = _selectedContact;
+            Task.Run(() =>
+            {
+                var ok = TcpChatClient.Send(contact.IpAddress, contact.TcpPort, packet);
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    msg.IsSending    = false;
+                    msg.HasSendError = !ok;
+                    if (!ok) AppLogger.Warn($"Retry failed for message {msg.Id}");
+                });
+            });
         }
 
         // ─── Search ────────────────────────────────────────────────
@@ -1434,6 +1722,23 @@ namespace M_A_G_A.ViewModels
                 FilteredContacts.Add(c);
         }
 
+        /// <summary>Adds a system/informational message to the current chat (not sent over network).</summary>
+        private void AddSystemMessage(string text)
+        {
+            if (_selectedContact == null) return;
+            var msg = new ChatMessage
+            {
+                Id         = Guid.NewGuid().ToString(),
+                SenderId   = _myId,
+                SenderName = "SYSTEM",
+                Type       = MessageType.Text,
+                Content    = text,
+                Timestamp  = DateTime.Now,
+                IsSentByMe = false
+            };
+            CurrentMessages.Add(msg);
+        }
+
         // ─── Cleanup ────────────────────────────────────────────────
         public void Dispose()
         {
@@ -1444,7 +1749,20 @@ namespace M_A_G_A.ViewModels
 
             // Persist all open histories
             foreach (var kv in _chatHistory)
-                HistoryHelper.SaveHistory(kv.Key, kv.Value);
+            {
+                try
+                {
+                    if (_useJsonStorage)
+                        HistoryHelper.SaveHistory(kv.Key, kv.Value);
+                    else
+                        SqliteHistoryHelper.SaveHistory(kv.Key, kv.Value);
+                }
+                catch (Exception ex)
+                {
+                    AppLogger.Error($"SQLite save failed on dispose for {kv.Key}, falling back to JSON", ex);
+                    try { HistoryHelper.SaveHistory(kv.Key, kv.Value); } catch { }
+                }
+            }
             SaveProfile();
             SaveSettings();
         }
