@@ -16,6 +16,8 @@ namespace M_A_G_A.Models
         private bool _isEdited;
         private bool _isSelected;
         private bool _hasSendError;
+        private bool _isSending;
+        private int  _sendProgress;   // 0–100
         private string _content;
 
         public string Id          { get; set; } = Guid.NewGuid().ToString();
@@ -46,6 +48,21 @@ namespace M_A_G_A.Models
             get => _isRead;
             set { _isRead = value; OnPropertyChanged(nameof(IsRead)); OnPropertyChanged(nameof(StatusGlyph)); }
         }
+
+        // ─── Send progress ───────────────────────────────────────────
+        /// <summary>True while the message / file is being sent over the network.</summary>
+        public bool IsSending
+        {
+            get => _isSending;
+            set { _isSending = value; OnPropertyChanged(nameof(IsSending)); OnPropertyChanged(nameof(StatusGlyph)); }
+        }
+        /// <summary>Upload progress 0–100 for file/image/video messages.</summary>
+        public int SendProgress
+        {
+            get => _sendProgress;
+            set { _sendProgress = value; OnPropertyChanged(nameof(SendProgress)); OnPropertyChanged(nameof(SendProgressText)); }
+        }
+        public string SendProgressText => _isSending ? $"{_sendProgress}%" : "";
 
         // ─── Editing ─────────────────────────────────────────────────
         public bool IsEdited
@@ -155,6 +172,7 @@ namespace M_A_G_A.Models
             get
             {
                 if (!IsSentByMe) return "";
+                if (_isSending)  return "⏳";
                 if (IsRead)      return "✓✓";
                 if (IsDelivered) return "✓";
                 return "○";

@@ -8,10 +8,10 @@ using System.Windows;
 // набор атрибутов. Измените значения этих атрибутов, чтобы изменить сведения,
 // связанные со сборкой.
 [assembly: AssemblyTitle("MAGA Messenger")]
-[assembly: AssemblyDescription("Мессенджер локальной сети")]
+[assembly: AssemblyDescription("Мессенджер локальной сети. Шифрование диалогов, SQLite-хранилище, EN/RU интерфейс. Магаммед Ширалиев КИ-31 при поддержке проекта V3LOM")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("Магаммед Ширалиев КИ-31 при поддержке проекта V3LOM")]
-[assembly: AssemblyProduct("M_A_G_A")]
+[assembly: AssemblyProduct("MAGA Messenger")]
 [assembly: AssemblyCopyright("Copyright © Магаммед Ширалиев 2026")]
 [assembly: AssemblyTrademark("V3LOM")]
 [assembly: AssemblyCulture("")]
@@ -48,5 +48,5 @@ using System.Windows;
 //      Номер сборки
 //      Номер редакции
 //
-[assembly: AssemblyVersion("1.0.0.0")]
-[assembly: AssemblyFileVersion("1.0.0.0")]
+[assembly: AssemblyVersion("1.1.0.0")]
+[assembly: AssemblyFileVersion("1.1.0.0")]

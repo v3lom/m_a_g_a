@@ -24,6 +24,12 @@ namespace M_A_G_A.Models
         /// <summary>User bio / status text (max 1024 chars).</summary>
         public const int MaxBioLength = 1024;
 
+        // ─── Per-dialog encryption ────────────────────────────────────
+        /// <summary>When true, messages to/from this contact are AES-encrypted.</summary>
+        public bool EncryptionEnabled { get; set; }
+        /// <summary>Base64-encoded 32-byte AES key used for this dialog. Null = no encryption.</summary>
+        public string ChatEncryptionKey { get; set; }
+
         public string Bio
         {
             get => _bio;

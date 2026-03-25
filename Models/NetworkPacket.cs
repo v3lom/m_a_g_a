@@ -18,6 +18,8 @@ namespace M_A_G_A.Models
     ///   EDIT      – message edit (MessageId + Content)
     ///   DELETE    – message deletion (MessageId)
     ///   REACT     – reaction (MessageId + Content=emoji + Extra=userId)
+    ///   ENCRYPT_REQ – request encrypted chat (Content = initiator's public suggestion)
+    ///   ENCRYPT_ACK – accept encrypted chat
     [DataContract]
     public class NetworkPacket
     {
@@ -36,5 +38,7 @@ namespace M_A_G_A.Models
         [DataMember] public string Timestamp    { get; set; }
         [DataMember] public int    TcpPort      { get; set; }
         [DataMember] public string Extra        { get; set; }   // general-purpose field (e.g. userId in REACT)
+        /// <summary>When true the Content field is AES-256-CBC encrypted (base64).</summary>
+        [DataMember] public bool   IsEncrypted  { get; set; }
     }
 }

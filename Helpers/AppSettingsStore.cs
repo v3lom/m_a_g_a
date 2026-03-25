@@ -10,7 +10,8 @@ namespace M_A_G_A.Helpers
 {
     /// <summary>
     /// Centralised persistent settings store (AppData/MAGA/settings.json).
-    /// Covers: notifications, stealth, theme, password, folders, global background.
+    /// Covers: notifications, stealth, theme, folders, global background,
+    ///         storage mode (SQLite/JSON), language (ru/en), per-chat encryption keys.
     /// </summary>
     public static class AppSettingsStore
     {
@@ -66,11 +67,22 @@ namespace M_A_G_A.Helpers
         [DataMember] public bool   NotificationsEnabled  { get; set; } = true;
         [DataMember] public bool   StealthMode           { get; set; } = false;
         [DataMember] public bool   IsLightTheme          { get; set; } = false;
-        [DataMember] public string PasswordHash          { get; set; } = null;
         [DataMember] public string GlobalBackgroundB64   { get; set; } = null;
         [DataMember] public List<ChatFolder> Folders     { get; set; } = new List<ChatFolder>();
         [DataMember] public List<ContactBgEntry> ContactBackgrounds { get; set; } = new List<ContactBgEntry>();
         [DataMember] public bool   AutoStartConfigured   { get; set; } = false;
+
+        /// <summary>When true, uses JSON files instead of the default SQLite database.</summary>
+        [DataMember] public bool   UseJsonStorage        { get; set; } = false;
+
+        /// <summary>UI language: "ru" (default) or "en".</summary>
+        [DataMember] public string AppLanguage           { get; set; } = "ru";
+
+        /// <summary>
+        /// Per-contact encryption password hashes.
+        /// Key = contactId, Value = AES password (stored as a random base64 key).
+        /// </summary>
+        [DataMember] public List<ContactEncryptionEntry> EncryptionKeys { get; set; } = new List<ContactEncryptionEntry>();
     }
 
     [DataContract]
@@ -78,5 +90,13 @@ namespace M_A_G_A.Helpers
     {
         [DataMember] public string ContactId   { get; set; }
         [DataMember] public string BackgroundB64 { get; set; }
+    }
+
+    [DataContract]
+    public class ContactEncryptionEntry
+    {
+        [DataMember] public string ContactId      { get; set; }
+        /// <summary>Base64-encoded 32-byte AES key for this dialog.</summary>
+        [DataMember] public string EncryptionKey  { get; set; }
     }
 }

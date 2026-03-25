@@ -168,7 +168,7 @@
                                                         MinWidth="18" Height="18" Margin="6,0,0,0" Padding="4,0"
                                                         Visibility="{Binding HasUnread, Converter={StaticResource BoolToVis}}">
                                                     <TextBlock Text="{Binding UnreadCount}" FontSize="10"
-                                                               Foreground="White" FontWeight="Bold"
+                                                               Foreground="{StaticResource AccentBrush}" FontWeight="Bold"
                                                                HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                                 </Border>
                                             </StackPanel>
@@ -204,13 +204,13 @@
                     Visibility="{Binding ShowSettings, Converter={StaticResource BoolToVis}}"
                     Background="{StaticResource Surface2Brush}"
                     BorderBrush="{StaticResource BorderBrush2}" BorderThickness="0,1,0,0"
-                    MaxHeight="420">
+                    MaxHeight="460">
                 <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                <StackPanel>
+                <StackPanel Margin="14,12,14,14">
                     <TextBlock Text="НАСТРОЙКИ" FontSize="10" FontWeight="SemiBold"
                                Foreground="{StaticResource TextSecBrush}" Margin="0,0,0,10"/>
 
-                    <!-- Bio section -->
+                    <!-- ─── Profile ─── -->
                     <TextBlock Text="МОЙ ПРОФИЛЬ" FontSize="10" FontWeight="SemiBold"
                                Foreground="{StaticResource TextSecBrush}" Margin="0,0,0,6"/>
                     <TextBox Style="{StaticResource ModernTextBox}"
@@ -219,41 +219,41 @@
                              MaxLength="1024" FontSize="12" Padding="10,8"
                              VerticalScrollBarVisibility="Auto" Margin="0,0,0,6"
                              ToolTip="О себе (до 1024 символов)"/>
-                    <Button Content="💾 Сохранить профиль и уведомить всех" Style="{StaticResource IconButton}"
+                    <Button Content="💾 Сохранить профиль" Style="{StaticResource IconButton}"
                             Command="{Binding BroadcastProfileCommand}"
                             Background="{StaticResource Surface3Brush}"
                             Padding="10,6" FontSize="11" Margin="0,0,0,10" HorizontalAlignment="Left"/>
 
-                    <!-- Auto-start -->
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                    <!-- ─── Auto-start ─── -->
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                         <CheckBox IsChecked="{Binding AutoStart}" VerticalAlignment="Center"
-                                  Foreground="White" Cursor="Hand"/>
+                                  Foreground="{StaticResource TextBrush}" Cursor="Hand"/>
                         <TextBlock Text=" Автозапуск при входе в систему"
                                    FontSize="12" VerticalAlignment="Center"/>
                     </StackPanel>
 
-                    <!-- Identity info -->
+                    <!-- ─── Computer info ─── -->
                     <TextBlock Text="МОЙ КОМПЬЮТЕР" FontSize="10" FontWeight="SemiBold"
-                               Foreground="{StaticResource TextSecBrush}" Margin="0,6,0,6"/>
+                               Foreground="{StaticResource TextSecBrush}" Margin="0,4,0,4"/>
                     <TextBlock FontSize="11" TextWrapping="Wrap" Foreground="{StaticResource TextSecBrush}">
                         <Run Text="MAC: "/>
-                        <Run Text="{Binding MyMacAddress, Mode=OneWay}" Foreground="White"/>
+                        <Run Text="{Binding MyMacAddress, Mode=OneWay}" Foreground="{StaticResource AccentBrush}"/>
                     </TextBlock>
                     <TextBlock FontSize="11" TextWrapping="Wrap" Foreground="{StaticResource TextSecBrush}">
                         <Run Text="Host: "/>
-                        <Run Text="{Binding MyHostname, Mode=OneWay}" Foreground="White"/>
+                        <Run Text="{Binding MyHostname, Mode=OneWay}" Foreground="{StaticResource AccentBrush}"/>
                     </TextBlock>
                     <TextBlock FontSize="11" TextWrapping="Wrap" Foreground="{StaticResource TextSecBrush}">
                         <Run Text="IPv4: "/>
-                        <Run Text="{Binding MyIPv4, Mode=OneWay}" Foreground="White"/>
+                        <Run Text="{Binding MyIPv4, Mode=OneWay}" Foreground="{StaticResource AccentBrush}"/>
                     </TextBlock>
-                    <TextBlock FontSize="11" TextWrapping="Wrap" Foreground="{StaticResource TextSecBrush}">
+                    <TextBlock FontSize="11" TextWrapping="Wrap" Foreground="{StaticResource TextSecBrush}" Margin="0,0,0,8">
                         <Run Text="IPv6: "/>
-                        <Run Text="{Binding MyIPv6, Mode=OneWay}" Foreground="White"/>
+                        <Run Text="{Binding MyIPv6, Mode=OneWay}" Foreground="{StaticResource AccentBrush}"/>
                     </TextBlock>
 
-                    <!-- Export/Import -->
-                    <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                    <!-- ─── Export/Import ─── -->
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                         <Button Content="Экспорт истории" Style="{StaticResource IconButton}"
                                 Command="{Binding ExportHistoryCommand}"
                                 Background="{StaticResource Surface3Brush}"
@@ -264,26 +264,26 @@
                                 Padding="10,6" FontSize="11"/>
                     </StackPanel>
 
-                    <!-- Notifications -->
-                    <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                    <!-- ─── Notifications ─── -->
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
                         <CheckBox IsChecked="{Binding NotificationsEnabled}" VerticalAlignment="Center"
-                                  Foreground="White" Cursor="Hand"/>
+                                  Foreground="{StaticResource TextBrush}" Cursor="Hand"/>
                         <TextBlock Text=" Уведомления о сообщениях"
                                    FontSize="12" VerticalAlignment="Center"/>
                     </StackPanel>
 
-                    <!-- Stealth mode -->
-                    <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                    <!-- ─── Stealth mode ─── -->
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
                         <CheckBox IsChecked="{Binding StealthMode}" VerticalAlignment="Center"
-                                  Foreground="White" Cursor="Hand"/>
+                                  Foreground="{StaticResource TextBrush}" Cursor="Hand"/>
                         <TextBlock Text=" Невидимый режим (скрыть от других)"
                                    FontSize="12" VerticalAlignment="Center"/>
                     </StackPanel>
 
-                    <!-- Manual IP connect -->
+                    <!-- ─── Connect by IP ─── -->
                     <TextBlock Text="ПОДКЛЮЧИТЬ ПО IP" FontSize="10" FontWeight="SemiBold"
-                               Foreground="{StaticResource TextSecBrush}" Margin="0,12,0,6"/>
-                    <Grid>
+                               Foreground="{StaticResource TextSecBrush}" Margin="0,0,0,6"/>
+                    <Grid Margin="0,0,0,10">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="Auto"/>
@@ -299,18 +299,16 @@
                                 ToolTip="Отправить запрос по IP"/>
                     </Grid>
 
-                    <!-- ─── Theme ─── -->
+                    <!-- ─── Appearance ─── -->
                     <TextBlock Text="ОФОРМЛЕНИЕ" FontSize="10" FontWeight="SemiBold"
-                               Foreground="{StaticResource TextSecBrush}" Margin="0,14,0,6"/>
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                               Foreground="{StaticResource TextSecBrush}" Margin="0,0,0,6"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
                         <CheckBox IsChecked="{Binding IsLightTheme}" VerticalAlignment="Center"
-                                  Foreground="White" Cursor="Hand"/>
+                                  Foreground="{StaticResource TextBrush}" Cursor="Hand"/>
                         <TextBlock Text=" Светлая тема (применится при перезапуске)"
                                    FontSize="12" VerticalAlignment="Center"/>
                     </StackPanel>
-
-                    <!-- Global background -->
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
                         <Button Content="🖼 Обои чата" Style="{StaticResource IconButton}"
                                 Command="{Binding PickGlobalBackgroundCommand}"
                                 Background="{StaticResource Surface3Brush}"
@@ -323,9 +321,44 @@
                                 ToolTip="Убрать глобальные обои"/>
                     </StackPanel>
 
+                    <!-- ─── Language ─── -->
+                    <TextBlock Text="ЯЗЫК / LANGUAGE" FontSize="10" FontWeight="SemiBold"
+                               Foreground="{StaticResource TextSecBrush}" Margin="0,0,0,6"/>
+                    <Button Style="{StaticResource IconButton}"
+                            Command="{Binding ToggleLanguageCommand}"
+                            Background="{StaticResource Surface3Brush}"
+                            Padding="10,6" FontSize="11" HorizontalAlignment="Left" Margin="0,0,0,10">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="🌐 "/>
+                            <TextBlock Text="{Binding AppLanguage, StringFormat='Язык: {0}'}"/>
+                        </StackPanel>
+                    </Button>
+
+                    <!-- ─── Storage ─── -->
+                    <TextBlock Text="ХРАНИЛИЩЕ" FontSize="10" FontWeight="SemiBold"
+                               Foreground="{StaticResource TextSecBrush}" Margin="0,0,0,6"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                        <CheckBox IsChecked="{Binding UseJsonStorage}" VerticalAlignment="Center"
+                                  Foreground="{StaticResource TextBrush}" Cursor="Hand"/>
+                        <TextBlock Text=" JSON (не рекомендуется, медленнее)"
+                                   FontSize="11" VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                        <Button Content="→ SQLite" Style="{StaticResource IconButton}"
+                                Command="{Binding MigrateToSqliteCommand}"
+                                Background="{StaticResource Surface3Brush}"
+                                Padding="8,5" FontSize="11" Margin="0,0,6,0"
+                                ToolTip="Перенести историю из JSON в SQLite"/>
+                        <Button Content="→ JSON" Style="{StaticResource IconButton}"
+                                Command="{Binding MigrateToJsonCommand}"
+                                Background="{StaticResource Surface3Brush}"
+                                Padding="8,5" FontSize="11"
+                                ToolTip="Перенести историю из SQLite в JSON"/>
+                    </StackPanel>
+
                     <!-- ─── Folders ─── -->
                     <TextBlock Text="ПАПКИ" FontSize="10" FontWeight="SemiBold"
-                               Foreground="{StaticResource TextSecBrush}" Margin="0,10,0,6"/>
+                               Foreground="{StaticResource TextSecBrush}" Margin="0,0,0,6"/>
                     <Button Content="+ Создать папку" Style="{StaticResource IconButton}"
                             Command="{Binding CreateFolderCommand}"
                             Background="{StaticResource Surface3Brush}"
@@ -408,6 +441,23 @@
                         </StackPanel>
                         <!-- Header action buttons -->
                         <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                            <!-- Encryption toggle -->
+                            <Button Style="{StaticResource IconButton}"
+                                    Command="{Binding RequestEncryptionCommand}"
+                                    Width="36" Height="36" Padding="0"
+                                    Margin="0,0,4,0"
+                                    ToolTip="Включить/запросить шифрование диалога"
+                                    Visibility="{Binding ContactEncryptionEnabled, Converter={StaticResource BoolToVis}, ConverterParameter=invert}">
+                                <TextBlock Text="🔓" FontSize="14"/>
+                            </Button>
+                            <Button Style="{StaticResource IconButton}"
+                                    Command="{Binding DisableEncryptionCommand}"
+                                    Width="36" Height="36" Padding="0"
+                                    Margin="0,0,4,0"
+                                    ToolTip="Отключить шифрование"
+                                    Visibility="{Binding ContactEncryptionEnabled, Converter={StaticResource BoolToVis}}">
+                                <TextBlock Text="🔒" FontSize="14" Foreground="#00CC66"/>
+                            </Button>
                             <Button Style="{StaticResource IconButton}"
                                     Command="{Binding ToggleSelectModeCommand}"
                                     Width="36" Height="36" Padding="0"
@@ -455,11 +505,28 @@
                                               CornerRadius="18" Padding="14,10"
                                               Tag="{Binding DataContext, ElementName=MsgList}">
                                           <StackPanel>
-                                              <!-- Error indicator -->
-                                              <TextBlock Text="⚠️ Ошибка отправки"
-                                                         Foreground="#FF6666" FontSize="10"
-                                                         Visibility="{Binding HasSendError, Converter={StaticResource BoolToVis}}"
-                                                         Margin="0,0,0,2"/>
+                                              <!-- Error indicator with retry button -->
+                                              <StackPanel Orientation="Horizontal"
+                                                          Visibility="{Binding HasSendError, Converter={StaticResource BoolToVis}}"
+                                                          Margin="0,0,0,2">
+                                                  <TextBlock Text="⚠️ Ошибка отправки"
+                                                             Foreground="#FF6666" FontSize="10"
+                                                             VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                                  <Button Content="↺ Повторить"
+                                                          FontSize="10" Padding="4,2"
+                                                          Background="Transparent" BorderThickness="1"
+                                                          BorderBrush="#FF6666" Foreground="#FF6666"
+                                                          Cursor="Hand"
+                                                          Command="{Binding DataContext.RetryMessageCommand, ElementName=MsgList}"
+                                                          CommandParameter="{Binding}"/>
+                                              </StackPanel>
+                                              <!-- Sending progress indicator -->
+                                              <StackPanel Orientation="Horizontal"
+                                                          Visibility="{Binding IsSending, Converter={StaticResource BoolToVis}}"
+                                                          Margin="0,0,0,2">
+                                                  <TextBlock Text="Отправка… " Foreground="#AAAAAA" FontSize="10" VerticalAlignment="Center"/>
+                                                  <TextBlock Text="{Binding SendProgressText}" Foreground="#AAAAAA" FontSize="10" VerticalAlignment="Center"/>
+                                              </StackPanel>
                                               <!-- Edited indicator -->
                                               <TextBlock Text="✏️ изменено"
                                                          Foreground="#AAAAAA" FontSize="10"
@@ -591,6 +658,27 @@
                                               Background="{Binding IsSentByMe, Converter={StaticResource BubbleColor}}"
                                               CornerRadius="14" Padding="14,10" MinWidth="200" MaxWidth="340">
                                           <StackPanel>
+                                              <!-- Error + retry for file messages -->
+                                              <StackPanel Orientation="Horizontal"
+                                                          Visibility="{Binding HasSendError, Converter={StaticResource BoolToVis}}"
+                                                          Margin="0,0,0,4">
+                                                  <TextBlock Text="⚠️ Ошибка "
+                                                             Foreground="#FF6666" FontSize="10" VerticalAlignment="Center"/>
+                                                  <Button Content="↺ Повторить"
+                                                          FontSize="10" Padding="4,2"
+                                                          Background="Transparent" BorderThickness="1"
+                                                          BorderBrush="#FF6666" Foreground="#FF6666"
+                                                          Cursor="Hand"
+                                                          Command="{Binding DataContext.RetryMessageCommand, ElementName=MsgList}"
+                                                          CommandParameter="{Binding}"/>
+                                              </StackPanel>
+                                              <!-- File sending progress -->
+                                              <StackPanel Orientation="Horizontal"
+                                                          Visibility="{Binding IsSending, Converter={StaticResource BoolToVis}}"
+                                                          Margin="0,0,0,4">
+                                                  <TextBlock Text="Отправка… " Foreground="#AAAAAA" FontSize="10" VerticalAlignment="Center"/>
+                                                  <TextBlock Text="{Binding SendProgressText}" Foreground="#AAAAAA" FontSize="10" VerticalAlignment="Center"/>
+                                              </StackPanel>
                                               <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
                                                   <TextBlock Text="📁" FontSize="22" Margin="0,0,10,0" VerticalAlignment="Center"/>
                                                   <StackPanel VerticalAlignment="Center">
@@ -833,7 +921,7 @@
                                 Command="{Binding SendTextCommand}"
                                 Margin="4,0,0,0" Width="42" Height="42" Padding="0"
                                 Visibility="{Binding IsEditing, Converter={StaticResource BoolToVis}, ConverterParameter=invert}">
-                            <TextBlock Text="➤" FontSize="20" Foreground="White"/>
+                            <TextBlock Text="➤" FontSize="20" Foreground="{StaticResource AccentBrush}"/>
                         </Button>
                         <!-- Confirm edit button -->
                         <Button Grid.Column="6" Style="{StaticResource IconButton}"
@@ -841,7 +929,7 @@
                                 Margin="4,0,0,0" Width="42" Height="42" Padding="0"
                                 Background="#003366"
                                 Visibility="{Binding IsEditing, Converter={StaticResource BoolToVis}}">
-                            <TextBlock Text="✓" FontSize="20" Foreground="White"/>
+                            <TextBlock Text="✓" FontSize="20" Foreground="{StaticResource AccentBrush}"/>
                         </Button>
                     </Grid>
 
@@ -954,7 +1042,7 @@
                         <Border Background="#CC2244" CornerRadius="10" Padding="10,4" Margin="0,0,0,10"
                                 HorizontalAlignment="Center"
                                 Visibility="{Binding SelectedContact.HasUnread, Converter={StaticResource BoolToVis}}">
-                            <TextBlock FontSize="12" Foreground="White">
+                            <TextBlock FontSize="12" Foreground="{StaticResource AccentBrush}">
                                 <Run Text="{Binding SelectedContact.UnreadCount}"/>
                                 <Run Text=" непрочитанных"/>
                             </TextBlock>
@@ -1024,7 +1112,7 @@
                                    Foreground="{StaticResource TextSecBrush}" Margin="0,0,0,6"/>
                         <TextBlock FontSize="11" Foreground="{StaticResource TextSecBrush}" Margin="0,0,0,6">
                             <Run Text="Текущая: "/>
-                            <Run Text="{Binding SelectedContact.FolderName, TargetNullValue='Без папки'}" Foreground="White"/>
+                            <Run Text="{Binding SelectedContact.FolderName, TargetNullValue='Без папки'}" Foreground="{StaticResource AccentBrush}"/>
                         </TextBlock>
                         <ItemsControl ItemsSource="{Binding Folders}"
                                       Visibility="{Binding Folders.Count, Converter={StaticResource BoolToVis}}">
