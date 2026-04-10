@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Data;
-using System.Data.SQLite;
 using System.IO;
 using M_A_G_A.Models;
+using Microsoft.Data.Sqlite;
 
 namespace M_A_G_A.Helpers
 {
@@ -48,9 +48,9 @@ namespace M_A_G_A.Helpers
 
         // ── Connection factory ────────────────────────────────────────────
 
-        private static SQLiteConnection OpenConnection()
+        private static SqliteConnection OpenConnection()
         {
-            var conn = new SQLiteConnection(ConnectionString);
+            var conn = new SqliteConnection(ConnectionString);
             conn.Open();
             return conn;
         }
@@ -221,20 +221,20 @@ namespace M_A_G_A.Helpers
                             (@id, @cid, @sid, @sname, @type, @content,
                              @imgb64, @fileb64, @fname, @ts,
                              @isbyme, @isdeliv, @isread, @isedit)";
-                        var pId      = ins.Parameters.Add("@id",      DbType.String);
-                        var pCid     = ins.Parameters.Add("@cid",     DbType.String);
-                        var pSid     = ins.Parameters.Add("@sid",     DbType.String);
-                        var pSname   = ins.Parameters.Add("@sname",   DbType.String);
-                        var pType    = ins.Parameters.Add("@type",    DbType.String);
-                        var pContent = ins.Parameters.Add("@content", DbType.String);
-                        var pImg     = ins.Parameters.Add("@imgb64",  DbType.String);
-                        var pFile    = ins.Parameters.Add("@fileb64", DbType.String);
-                        var pFname   = ins.Parameters.Add("@fname",   DbType.String);
-                        var pTs      = ins.Parameters.Add("@ts",      DbType.String);
-                        var pByMe    = ins.Parameters.Add("@isbyme",  DbType.Int32);
-                        var pDeliv   = ins.Parameters.Add("@isdeliv", DbType.Int32);
-                        var pRead    = ins.Parameters.Add("@isread",  DbType.Int32);
-                        var pEdit    = ins.Parameters.Add("@isedit",  DbType.Int32);
+                        var pId      = ins.Parameters.Add("@id", (SqliteType)DbType.String);
+                        var pCid     = ins.Parameters.Add("@cid", (SqliteType)DbType.String);
+                        var pSid     = ins.Parameters.Add("@sid", (SqliteType)DbType.String);
+                        var pSname   = ins.Parameters.Add("@sname",   (SqliteType)DbType.String);
+                        var pType    = ins.Parameters.Add("@type",    (SqliteType)DbType.String);
+                        var pContent = ins.Parameters.Add("@content", (SqliteType)DbType.String);
+                        var pImg     = ins.Parameters.Add("@imgb64",    (SqliteType)DbType.String);
+                        var pFile    = ins.Parameters.Add("@fileb64", (SqliteType)DbType.String);
+                        var pFname   = ins.Parameters.Add("@fname",   (SqliteType)DbType.String);
+                        var pTs      = ins.Parameters.Add("@ts",      (SqliteType)DbType.String);
+                        var pByMe    = ins.Parameters.Add("@isbyme",  (SqliteType)DbType.Int32);
+                        var pDeliv   = ins.Parameters.Add("@isdeliv", (SqliteType)DbType.Int32);
+                        var pRead    = ins.Parameters.Add("@isread",  (SqliteType)DbType.Int32);
+                        var pEdit    = ins.Parameters.Add("@isedit",  (SqliteType)DbType.Int32);
 
                         foreach (var m in messages)
                         {

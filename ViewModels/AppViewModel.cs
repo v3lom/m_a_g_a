@@ -963,7 +963,7 @@ namespace M_A_G_A.ViewModels
 
             var text = MessageInput;
             MessageInput = "";
-            var msg    = new ChatMessage { Type = MessageType.Text, Content = text };
+            var msg = new ChatMessage { Type = MessageType.Text, Content = text };
             var packet = BuildPacket("TEXT");
             packet.MessageId = msg.Id = Guid.NewGuid().ToString();
 
@@ -973,7 +973,7 @@ namespace M_A_G_A.ViewModels
                 var encrypted = EncryptionHelper.EncryptMessage(text, _selectedContact.ChatEncryptionKey);
                 if (encrypted != null)
                 {
-                    packet.Content     = encrypted;
+                    packet.Content = encrypted;
                     packet.IsEncrypted = true;
                 }
                 else { packet.Content = text; }
@@ -996,6 +996,7 @@ namespace M_A_G_A.ViewModels
                     }
                 });
             });
+        }
         private void StartVoiceRecording()
         {
             _audio.StartRecording();
